@@ -6,7 +6,7 @@ Small userscripts for GitHub by [goulinkh](https://github.com/goulinkh).
 
 A Markdown editing surface for GitHub comments and pull-request reviews, powered by [OverType](https://github.com/panphora/overtype).
 
-[**Install GitHub OverType v0.1.0**](https://github.com/goulinkh/github-userscripts/releases/download/v0.1.0/github-overtype.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js)
+[**Install GitHub OverType v0.1.1**](https://github.com/goulinkh/github-userscripts/releases/download/v0.1.1/github-overtype.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js)
 
 Install a userscript manager such as Tampermonkey, then open the install link and confirm installation. Disable older copies to avoid duplicate editors. Preserve any unsaved text before reloading GitHub.
 

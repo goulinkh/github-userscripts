@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub OverType Comments
 // @namespace    https://github.com/goulinkh/github-userscripts
-// @version      0.1.0
+// @version      0.1.1
 // @description  OverType Markdown editing and code highlighting for GitHub comments
 // @author       goulinkh
 // @license      MIT
@@ -162,6 +162,7 @@ SOFTWARE.
       -webkit-text-fill-color: transparent !important;
       pointer-events: none !important;
       caret-color: transparent !important;
+      display: block !important;
     }
     .gh-ot-active > textarea[${MARK}]::placeholder {
       color: transparent !important;
@@ -170,7 +171,7 @@ SOFTWARE.
     }
     .gh-ot-shell {
       position: absolute;
-      inset: 3px;
+      inset: 0;
       z-index: 1;
       display: flex;
       flex-direction: column;
@@ -193,8 +194,10 @@ SOFTWARE.
     .gh-ot-host .overtype-container,
     .gh-ot-host .overtype-wrapper {
       background: transparent !important;
+      min-height: 0 !important;
     }
 
+    .gh-ot-active > textarea[${MARK}],
     .gh-ot-host .overtype-container,
     .gh-ot-host .overtype-wrapper,
     .gh-ot-host .overtype-wrapper .overtype-input,
@@ -207,6 +210,7 @@ SOFTWARE.
       font-variant-ligatures: none !important;
       font-kerning: none !important;
       font-synthesis: none !important;
+      tab-size: 4 !important;
       text-transform: none !important;
       text-indent: 0 !important;
       box-sizing: border-box;
@@ -289,12 +293,12 @@ SOFTWARE.
       original.selectionStart,
       original.selectionEnd,
       original.selectionDirection
-    ], height = Math.max(160, Math.ceil(original.getBoundingClientRect().height || 160));
+    ], resize = getComputedStyle(original).resize;
     original.setAttribute(MARK, "1");
     const shell = document.createElement("div");
     shell.className = "gh-ot-shell", shell.dataset.mode = "overtype";
     const host = document.createElement("div");
-    host.className = "gh-ot-host", shell.append(host), wrapper.append(shell), wrapper.classList.add("gh-ot-active"), getComputedStyle(wrapper).position === "static" && (wrapper.style.position = "relative"), wrapper.style.minHeight = `${height}px`;
+    host.className = "gh-ot-host", shell.append(host), wrapper.append(shell), wrapper.classList.add("gh-ot-active"), getComputedStyle(wrapper).position === "static" && (wrapper.style.position = "relative");
     let editor, editorInput, disposed = !1, writing = !1, lastValue = original.value;
     const restoreNative = () => {
       wrapper.classList.remove("gh-ot-active"), original.removeAttribute("aria-hidden"), oldAria !== null && original.setAttribute("aria-hidden", oldAria), oldTabIndex === null ? original.removeAttribute("tabindex") : original.setAttribute("tabindex", oldTabIndex), oldInert === null ? original.removeAttribute("inert") : original.setAttribute("inert", oldInert);
@@ -334,6 +338,7 @@ SOFTWARE.
         padding: EDITOR_PADDING,
         mobile: { fontSize: FONT_SIZE, lineHeight: LINE_HEIGHT, padding: EDITOR_PADDING },
         autoResize: !1,
+        minHeight: "0px",
         spellcheck: original.spellcheck,
         fileUpload: { enabled: !1 },
         onChange: updateGitHub
@@ -382,6 +387,14 @@ SOFTWARE.
       return event.preventDefault(), insertAtCaret(alreadyClosed ? newline : newline + `
 ` + fence.indent + fence.marker, newline.length), !0;
     }
+    editorInput.style.setProperty("resize", resize === "none" ? "none" : "vertical", "important");
+    const resizeObserver = new MutationObserver(() => {
+      const requested = parseFloat(editorInput.style.height);
+      if (!Number.isFinite(requested)) return;
+      const css = getComputedStyle(original), inset = css.boxSizing === "border-box" ? 0 : parseFloat(css.paddingTop) + parseFloat(css.paddingBottom) + parseFloat(css.borderTopWidth) + parseFloat(css.borderBottomWidth);
+      original.style.height = `${Math.max(0, requested - inset)}px`, editorInput.style.removeProperty("height");
+    });
+    resizeObserver.observe(editorInput, { attributes: !0, attributeFilter: ["style"] });
     const autocompleteAttributes = [
       "role",
       "aria-expanded",
@@ -443,7 +456,7 @@ SOFTWARE.
       sync: syncFromNative,
       cleanup() {
         if (!disposed) {
-          disposed = !0, autocompleteObserver.disconnect(), editorInput.removeEventListener("keydown", onEditorKeyDown), original.removeEventListener("focus", onNativeFocus), original.removeEventListener("input", syncFromNative), original.removeEventListener("change", syncFromNative), original.focus === forwardFocus && (oldOwnFocus ? Object.defineProperty(original, "focus", oldOwnFocus) : delete original.focus);
+          disposed = !0, resizeObserver.disconnect(), autocompleteObserver.disconnect(), editorInput.removeEventListener("keydown", onEditorKeyDown), original.removeEventListener("focus", onNativeFocus), original.removeEventListener("input", syncFromNative), original.removeEventListener("change", syncFromNative), original.focus === forwardFocus && (oldOwnFocus ? Object.defineProperty(original, "focus", oldOwnFocus) : delete original.focus);
           try {
             editor.destroy();
           } catch {
@@ -469,7 +482,7 @@ SOFTWARE.
   const interval = setInterval(() => {
     records.forEach((r) => r.sync()), scheduleScan();
   }, 750), api = {
-    version: "0.1.0",
+    version: "0.1.1",
     status: () => ({ version: api.version, editors: records.size, stopped }),
     destroy() {
       stopped || (stopped = !0, observer.disconnect(), cancelAnimationFrame(scanFrame), clearInterval(interval), document.removeEventListener("turbo:load", scheduleScan), document.removeEventListener("turbo:render", scheduleScan), records.forEach((r) => r.cleanup()), style.remove(), window[API] === api && delete window[API], console.info(LOG, "Stopped"));

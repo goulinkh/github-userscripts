@@ -17,6 +17,8 @@ try {
   await run('tests/theme.playwright.js');
   await run('tests/alignment.playwright.js');
   await run('build/fixture.playwright.js');
+  await run('tests/sizing.playwright.js');
+  await run('build/fixture.playwright.js');
   for (const name of ['editing', 'focus-handoff', 'native-visibility', 'autocomplete', 'highlighting']) {
     await run('tests/' + name + '.playwright.js');
   }

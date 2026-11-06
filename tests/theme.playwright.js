@@ -43,6 +43,7 @@ async (page) => {
       expected: {
         foreground: color('--fgColor-default'), background: color('--fixture-input-background', 'background-color'),
         fontFamily: color('--fontStack-monospace', 'font-family'),
+        bodyFontSize: color('--text-body-size-medium', 'font-size'),
         fontSize: color('--text-body-size-small', 'font-size'), lineHeight: color('--text-body-lineHeight-medium', 'line-height'),
         heading: color('--fgColor-default'), bold: color('--fgColor-default'),
         italic: color('--fgColor-default'), deleted: color('--fgColor-default'),
@@ -76,7 +77,7 @@ async (page) => {
   try {
     await page.evaluate(() => document.documentElement.setAttribute('data-color-mode', 'light'));
     const light = await validate('light');
-    check(parseFloat(light.input.fontSize) < parseFloat(light.native.fontSize), 'small text is smaller than the previous body-medium size');
+    check(parseFloat(light.input.fontSize) < parseFloat(light.expected.bodyFontSize), 'small text is smaller than the previous body-medium size');
     await page.evaluate(() => document.documentElement.setAttribute('data-color-mode', 'dark'));
     const dark = await validate('dark');
     check(light.preview.color !== dark.preview.color && light.native.background !== dark.native.background,
