@@ -1,0 +1,19 @@
+{
+  "name": "github-userscripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "npm run check && node scripts/test.mjs"
+  },
+  "dependencies": {
+    "@twinkleplop/typescript": "0.1.7"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "1.65.0"
+  }
+}
