@@ -30,3 +30,29 @@ const helper = await readFile('build/highlighter.js', 'utf8');
 await writeFile('userscripts/github-overtype.user.js', `${metadata}\n\n/*! Bundled Twinkleplop TypeScript/JavaScript/core:\n${license}*/\n${helper}\n${clean.code}`);
 execFileSync('python3', ['scripts/build-fixture.py'], { stdio: 'inherit' });
 console.log(`Built GitHub OverType ${version}`);
+const stickySource = await readFile('src/github-sticky-pr.js', 'utf8');
+const stickyVersion = stickySource.match(/const VERSION = '([^']+)';/)[1];
+const stickyClean = await transform(stickySource, { minifySyntax: true, legalComments: 'none', charset: 'utf8', target: 'es2022' });
+const stickyBase = 'https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js';
+await writeFile('userscripts/github-sticky-pr.user.js', `// ==UserScript==
+// @name         GitHub Sticky PR Navigation
+// @namespace    https://github.com/goulinkh/github-userscripts
+// @version      ${stickyVersion}
+// @description  Compact pinned PR tabs with coordinated GitHub sticky headers
+// @author       goulinkh
+// @license      MIT
+// @homepageURL  https://github.com/goulinkh/github-userscripts
+// @supportURL   https://github.com/goulinkh/github-userscripts/issues
+// @downloadURL  ${stickyBase}
+// @updateURL    ${stickyBase}
+// @match        https://github.com/*
+// @run-at       document-idle
+// @grant        none
+// ==/UserScript==
+\n${stickyClean.code}`);
+await writeFile('build/apply-sticky.playwright.js', `async page => {
+  if (new URL(page.url()).hostname !== 'github.com') throw Error('GitHub only');
+  await page.evaluate(${JSON.stringify(stickySource)});
+  await page.waitForTimeout(100);
+  return page.evaluate(() => window.__githubStickyPR.status());
+}`);

@@ -2,6 +2,20 @@
 
 Small userscripts for GitHub by [goulinkh](https://github.com/goulinkh).
 
+## GitHub Sticky PR Navigation
+
+[**Install Sticky PR Navigation v0.1.0**](https://github.com/goulinkh/github-userscripts/releases/download/sticky-pr-v0.1.0/github-sticky-pr.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js)
+
+A separate script in `userscripts/github-sticky-pr.user.js`. Pins a compact 36px PR tab row below GitHub's compact header, then offsets the existing Changes toolbar, active diff headers and sticky file tree. It retains GitHub's own sticky behavior and preserves the tabs' original layout space to avoid scroll jumps.
+
+Disable the older “Sticky PR navigation and Changes” script before installing this one; do not run both. Its old anonymous listeners cannot be safely removed by the replacement, so preserve unsaved work before reloading. Temporary development injection does not persist across reloads.
+
+The background spans the page. Overview retains the original centered tab alignment; Changes aligns tabs with its wider content gutters. The selected tab keeps GitHub's native underline and colors. No external dependencies are loaded.
+
+Tested against the current desktop Overview and Changes views and an isolated fixture covering grid layout, compact spacing, responsive widths, stack alignment, reapplication and cleanup. Other GitHub layouts and userscript-manager installation remain unverified. Layouts without native sticky toolbars/sidebars retain their native behavior.
+
+For debugging: `window.__githubStickyPR.status()` reports state; `window.__githubStickyPR.destroy()` restores adjusted styles and removes the integration.
+
 ## GitHub OverType Comments
 
 A Markdown editing surface for GitHub comments and pull-request reviews, powered by [OverType](https://github.com/panphora/overtype).
@@ -36,7 +50,7 @@ npx playwright install chromium
 npm test
 ```
 
-Installable output: `userscripts/github-overtype.user.js`. Build artifacts for safe browser debugging are generated under `build/`. See [AGENTS.md](AGENTS.md) for the full workflow.
+Installable outputs: `userscripts/github-overtype.user.js` and `userscripts/github-sticky-pr.user.js`. Build artifacts for safe browser debugging are generated under `build/`. See [AGENTS.md](AGENTS.md) for the full workflow.
 
 ### Dependencies and privacy
 

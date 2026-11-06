@@ -14,6 +14,12 @@ This public repository contains GitHub userscripts. The first is GitHub OverType
 
 Never edit only the generated userscript. Change source, rebuild, and commit the resulting artifact together when publishing is authorized.
 
+## Sticky PR navigation
+
+`src/github-sticky-pr.js` builds to `userscripts/github-sticky-pr.user.js` independently of OverType (script version 0.1.0). `scripts/test-sticky.mjs` uses a fresh, unauthenticated browser context with an intercepted synthetic GitHub URL; never point these tests at a live profile. `build/apply-sticky.playwright.js` only applies layout changes to the shared GitHub tab. Bring the tab forward before measuring animation-frame updates.
+
+Preserve GitHub's native sticky positions: adjust offsets, not the positioning mode of toolbars, file headers or sidebars. A spacer must preserve the navigation's named grid area, flex properties, margins and original height when tabs become fixed. The pinned background spans the viewport; on Changes, tab content follows the diff viewer/main content gutters rather than the narrower title grid. On Overview and other PR views, retain the original navigation spacer's centered left/right gutters. Keep the active link's native pseudo-element underline inside the compact row by clearing its negative bottom margin as well as its positional offset; retain GitHub's selection attributes and colors. Compact navigation overrides must beat GitHub's layered important padding; use saved inline-important properties and restore them on unpin/cleanup. Keep the native mini header above tabs, toolbar below tabs, diff headers below the toolbar, and the tree below tabs. Only adjust actual sticky/fixed header targets; never turn whole diff containers sticky. Preserve existing node identities and click handlers; do not clone/reparent navigation or modify form content. Mutation observation excludes inline styles to avoid feedback from offset writes. Disconnect observers/listeners and restore modified properties on destroy, route exit and reapplication. Do not try to remove anonymous listeners from the user's older script; require it to be disabled separately.
+
 ## Behavioral invariants
 
 OverType is always the visible editor. Do not add automatic native fallback or an editor-switch button. GitHub's textarea is an inert, hidden-text React/form bridge, not disabled: it must still participate in FormData. Its public focus method forwards to its own OverType input; cleanup restores original properties, attributes, listeners and wrapper styles.
@@ -95,4 +101,6 @@ Commit/push/create releases only when the user authorizes publishing. Before a p
 5. Use `gh` for repository/release operations. Verify public visibility, release asset, installation URL and CI status; do not claim CI passed while it is pending.
 6. Test the downloaded asset/checksum against the local artifact. Do not replace published release assets or rewrite tags silently; ship a new version for changes.
 
-The release artifact's metadata points updates to the main-branch raw userscript. Keep that branch installable. No automatic publishing workflow exists; CI only checks builds and tests.
+Sticky PR Navigation has its own version (`VERSION` in `src/github-sticky-pr.js`, read by the build) and tags `sticky-pr-vX.Y.Z`. Do not bump OverType or the package version for a sticky-only release. Attach `userscripts/github-sticky-pr.user.js` and a basename-only `SHA256SUMS` to its release; document which script each changelog/release concerns. The shared CI runs both scripts' suites.
+
+The release artifacts' metadata points updates to their main-branch raw userscripts. Keep that branch installable. No automatic publishing workflow exists; CI only checks builds and tests.
