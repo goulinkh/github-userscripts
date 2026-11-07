@@ -32,6 +32,8 @@ Keep fenced-code body/fence backgrounds joined without interior rounded corners.
 
 Ordinary editing keys are handled locally before GitHub's bubbling shortcuts; call OverType's pinned handler exactly once. Smart lists stay enabled. IME composition bypasses smart transformations. Shift+Enter remains a plain newline. Fence completion stays undoable and does not duplicate an existing closer.
 
+When the visible OverType input gains focus, dispatch a bubbling `focusin` notification on its native textarea bridge without actually focusing it or sending input/change events. GitHub's React textarea uses focus to initialize lazy suggestion data; skipping that notification can leave the mention popup showing loading skeletons indefinitely. Register the listener before initial focus transfer and remove it during cleanup. The `autocomplete-loading` fixture models delegated lazy loading independently of popup keyboard handling.
+
 An expanded textarea combobox with its own visible ARIA listbox gets unmodified Enter/Tab/Escape/Up/Down forwarded to that original textarea. Only a consumed key skips OverType handling. Do not route keys to unrelated/global popups or move focus to the native field. Mirror combobox ARIA attributes to the visible input. Synthetic-key acceptance is host-dependent; fixture success is not proof of every live GitHub popup.
 
 ## Safety on real GitHub
@@ -63,7 +65,7 @@ Use the work-profile browser MCP, not an unrelated personal profile. Re-list sha
 
 1. Reproduce safely in the fixture before patching. Inspect actual live computed styles/ARIA relationships when the problem is host-specific. Do not assume the reported mechanism is the cause.
 2. Rebuild. Create/select a new `about:blank` tab and run `build/fixture.playwright.js` via `browser_run_code_unsafe({filename: ABSOLUTE_PATH})`.
-3. Run applicable `tests/*.playwright.js` functions. Useful sequence: fixture → theme → alignment → fixture → sizing → fixture → editing → focus-handoff → native-visibility → autocomplete → highlighting → fixture → test. The lifecycle `test` suite leaves the integration stopped.
+3. Run applicable `tests/*.playwright.js` functions. Useful sequence: fixture → theme → alignment → fixture → sizing → fixture → editing → focus-handoff → native-visibility → autocomplete-loading → autocomplete → highlighting → fixture → test. The lifecycle `test` suite leaves the integration stopped.
 4. A fixture reset must navigate to a fresh blank document. `setContent` alone removes document listeners but retains OverType's global initialization flags, invalidating repeat keyboard tests. Bring the fixture tab forward if background throttling stalls timers or animation-frame scans.
 5. Stop any existing `window.__ghOtDiagnostics` before replacing the integration. Select the actual shared GitHub tab, run `build/apply.playwright.js`, and require preserved native values and zero initialization input/change events. Never run fixture/typing/alignment snippets there.
 6. Inspect computed font size/family, semantic token colors, transparent layers, code-block rectangles, associated popup ARIA IDs and active focus. Do not modify real text to manufacture examples.

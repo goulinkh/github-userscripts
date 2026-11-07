@@ -10,6 +10,12 @@
 
 The versions below refer to GitHub OverType Comments.
 
+## 0.1.2
+
+- Notify GitHub when the visible editor gains focus so lazily loaded mention suggestions do not remain stuck loading.
+- Keep actual focus in OverType without changing text or emitting input/change events.
+- Add six regression checks for lazy suggestion loading and focus forwarding.
+
 ## 0.1.1
 
 - Match the hidden field's text metrics to OverType so content-sized fields do not leave excess trailing space.

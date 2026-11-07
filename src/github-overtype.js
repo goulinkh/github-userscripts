@@ -373,6 +373,14 @@
       disposed || (syncFromNative(), hideNative(), editor.focus());
     };
     original.addEventListener("focus", onNativeFocus), original.addEventListener("input", syncFromNative), original.addEventListener("change", syncFromNative);
+    const notifyNativeFocus = (event) => {
+      if (!disposed) original.dispatchEvent(new FocusEvent("focusin", {
+        bubbles: !0,
+        composed: !0,
+        relatedTarget: event.relatedTarget
+      }));
+    };
+    editorInput.addEventListener("focus", notifyNativeFocus);
     const forwardFocus = (options) => {
       disposed || (syncFromNative(), editorInput.focus(options));
     };
@@ -388,7 +396,7 @@
       sync: syncFromNative,
       cleanup() {
         if (!disposed) {
-          disposed = !0, resizeObserver.disconnect(), autocompleteObserver.disconnect(), editorInput.removeEventListener("keydown", onEditorKeyDown), original.removeEventListener("focus", onNativeFocus), original.removeEventListener("input", syncFromNative), original.removeEventListener("change", syncFromNative), original.focus === forwardFocus && (oldOwnFocus ? Object.defineProperty(original, "focus", oldOwnFocus) : delete original.focus);
+          disposed = !0, editorInput.removeEventListener("focus", notifyNativeFocus), resizeObserver.disconnect(), autocompleteObserver.disconnect(), editorInput.removeEventListener("keydown", onEditorKeyDown), original.removeEventListener("focus", onNativeFocus), original.removeEventListener("input", syncFromNative), original.removeEventListener("change", syncFromNative), original.focus === forwardFocus && (oldOwnFocus ? Object.defineProperty(original, "focus", oldOwnFocus) : delete original.focus);
           try {
             editor.destroy();
           } catch {
@@ -414,7 +422,7 @@
   const interval = setInterval(() => {
     records.forEach((r) => r.sync()), scheduleScan();
   }, 750), api = {
-    version: "0.1.1",
+    version: "0.1.2",
     status: () => ({ version: api.version, editors: records.size, stopped }),
     destroy() {
       stopped || (stopped = !0, observer.disconnect(), cancelAnimationFrame(scanFrame), clearInterval(interval), document.removeEventListener("turbo:load", scheduleScan), document.removeEventListener("turbo:render", scheduleScan), records.forEach((r) => r.cleanup()), style.remove(), window[API] === api && delete window[API], console.info(LOG, "Stopped"));
