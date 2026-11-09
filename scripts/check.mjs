@@ -22,7 +22,7 @@ const stickySource = await readFile('src/github-sticky-pr.js', 'utf8');
 const stickyVersion = stickySource.match(/const VERSION = '([^']+)';/)[1];
 assert(stickyRelease.includes('// @version      ' + stickyVersion + '\n'));
 assert(stickyRelease.includes('// @name         GitHub Sticky PR Navigation\n'));
-assert(stickyRelease.includes('// @updateURL    https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js\n'));
+assert(stickyRelease.includes('// @updateURL    https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-sticky-pr.user.js\n'));
 assert(stickyRelease.includes('// @grant        none\n'));
 const docsRelease = await readFile('userscripts/google-docs-copy-md.user.js', 'utf8');
 const docsSource = await readFile('src/google-docs-copy-md.js', 'utf8');
@@ -30,7 +30,12 @@ const docsVersion = docsSource.match(/const VERSION = '([^']+)';/)[1];
 assert(docsRelease.startsWith('// ==UserScript==\n'));
 assert(docsRelease.includes('// @version      ' + docsVersion + '\n'));
 assert(docsRelease.includes('// @name         Google Docs Copy as Markdown\n'));
-assert(docsRelease.includes('// @updateURL    https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js\n'));
+assert(docsRelease.includes('// @updateURL    https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-copy-md.user.js\n'));
 assert(docsRelease.includes('// @grant        none\n'));
 assert(!/innerHTML|outerHTML|insertAdjacentHTML/.test(docsSource), 'Google Docs requires Trusted Types; build DOM without HTML strings');
+for (const file of ['userscripts/github-overtype.user.js', 'userscripts/github-sticky-pr.user.js', 'userscripts/google-docs-copy-md.user.js']) {
+  const release = await readFile(file, 'utf8');
+  assert(release.includes('// @namespace    https://github.com/goulinkh/github-userscripts\n'), file + ': keep the namespace; userscript managers identify scripts by name and namespace');
+  assert(!/^\/\/ @(?:homepageURL|supportURL|downloadURL|updateURL) .*github-userscripts/m.test(release), file + ': links must use the renamed repository');
+}
 console.log('Metadata, version, license, vendor checksum and syntax checks passed');

@@ -10,7 +10,7 @@ Small, independent browser userscripts by [goulinkh](https://github.com/goulinkh
 
 ## Google Docs Copy as Markdown
 
-[Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js)
+[Latest script](https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-copy-md.user.js)
 
 Adds a Markdown icon button next to Share in Google Docs. Clicking it requests Google's own exports and copies the document as Markdown to the clipboard instead of downloading a file. The icon turns into a check mark when copied, or an error mark with the reason in its tooltip.
 
@@ -49,7 +49,7 @@ No dependencies; requests go only to Google's export endpoints, and nothing in t
 
 ## GitHub Sticky PR Navigation
 
-[**Install Sticky PR Navigation v0.1.0**](https://github.com/goulinkh/github-userscripts/releases/download/sticky-pr-v0.1.0/github-sticky-pr.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js)
+[**Install Sticky PR Navigation v0.1.0**](https://github.com/goulinkh/userscripts/releases/download/sticky-pr-v0.1.0/github-sticky-pr.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-sticky-pr.user.js)
 
 > **Only works with GitHub's new pull request experience,** which GitHub currently offers as an experimental preview. The stable pull request pages are not supported or tested.
 
@@ -67,7 +67,7 @@ For debugging: `window.__githubStickyPR.status()` reports state; `window.__githu
 
 A Markdown editing surface for GitHub comments and pull-request reviews, powered by [OverType](https://github.com/panphora/overtype).
 
-[**Install GitHub OverType v0.1.1**](https://github.com/goulinkh/github-userscripts/releases/download/v0.1.1/github-overtype.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js)
+[**Install GitHub OverType v0.1.1**](https://github.com/goulinkh/userscripts/releases/download/v0.1.1/github-overtype.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-overtype.user.js)
 
 Open the install link in a browser with a userscript manager and confirm installation. Disable older copies to avoid duplicate editors. Preserve any unsaved text before reloading GitHub.
 

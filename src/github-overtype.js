@@ -422,7 +422,7 @@
   const interval = setInterval(() => {
     records.forEach((r) => r.sync()), scheduleScan();
   }, 750), api = {
-    version: "0.1.2",
+    version: "0.1.3",
     status: () => ({ version: api.version, editors: records.size, stopped }),
     destroy() {
       stopped || (stopped = !0, observer.disconnect(), cancelAnimationFrame(scanFrame), clearInterval(interval), document.removeEventListener("turbo:load", scheduleScan), document.removeEventListener("turbo:render", scheduleScan), records.forEach((r) => r.cleanup()), style.remove(), window[API] === api && delete window[API], console.info(LOG, "Stopped"));

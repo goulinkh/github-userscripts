@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Google Docs Copy as Markdown
 // @namespace    https://github.com/goulinkh/github-userscripts
-// @version      0.2.0
+// @version      0.2.1
 // @description  Adds a Copy as MD button that copies Google Docs' Markdown export to the clipboard
 // @author       goulinkh
 // @license      MIT
-// @homepageURL  https://github.com/goulinkh/github-userscripts
-// @supportURL   https://github.com/goulinkh/github-userscripts/issues
-// @downloadURL  https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js
-// @updateURL    https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
+// @downloadURL  https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-copy-md.user.js
+// @updateURL    https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-copy-md.user.js
 // @match        https://docs.google.com/document/d/*
 // @match        https://docs.google.com/document/u/*/d/*
 // @noframes
@@ -18,7 +18,7 @@
 
 (() => {
   "use strict";
-  const VERSION = "0.2.0", KEY = "__googleDocsCopyMarkdown";
+  const VERSION = "0.2.1", KEY = "__googleDocsCopyMarkdown";
   window[KEY]?.destroy();
   const prefix = "gdocs-copy-md", SVG = "http://www.w3.org/2000/svg", labels = { idle: "Copy as Markdown", busy: "Copying…", done: "Copied", fail: "Copy failed", retry: "Copy interrupted" }, settings = {
     click: { key: "gdocs-copy-md:click", title: "Click copies", announce: "Click now copies", options: { comments: "Markdown with comments", markdown: "Markdown only" } },

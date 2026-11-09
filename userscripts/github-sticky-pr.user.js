@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         GitHub Sticky PR Navigation
 // @namespace    https://github.com/goulinkh/github-userscripts
-// @version      0.1.0
+// @version      0.1.1
 // @description  Compact pinned PR tabs with coordinated GitHub sticky headers
 // @author       goulinkh
 // @license      MIT
-// @homepageURL  https://github.com/goulinkh/github-userscripts
-// @supportURL   https://github.com/goulinkh/github-userscripts/issues
-// @downloadURL  https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js
-// @updateURL    https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
+// @downloadURL  https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-sticky-pr.user.js
+// @updateURL    https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-sticky-pr.user.js
 // @match        https://github.com/*
 // @run-at       document-idle
 // @grant        none
@@ -16,7 +16,7 @@
 
 (() => {
   "use strict";
-  const VERSION = "0.1.0", KEY = "__githubStickyPR";
+  const VERSION = "0.1.1", KEY = "__githubStickyPR";
   window[KEY]?.destroy();
   const prefix = "gh-sticky-pr", navSelector = 'nav[aria-label="Pull request"],nav[aria-label="Pull request navigation"],nav[aria-label="Pull request navigation tabs"],.tabnav > nav.tabnav-tabs', toolbarSelector = "section:has(#changes-selector-button),.pr-toolbar", headerSelector = '[data-diff-header-wrapper],.js-file .file-header,[data-testid="diff-file-header"],[data-testid="file-diff-header"]', treeSelector = '#pr-file-tree,.js-diff-file-tree,[data-testid="file-tree"]', miniSelector = '[data-testid="diff-comparison-viewer-sticky-header-slot"]', style = document.createElement("style");
   style.textContent = `

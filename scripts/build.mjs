@@ -7,7 +7,7 @@ await mkdir('build', { recursive: true });
 await build({ entryPoints: ['src/highlighter.js'], bundle: true, format: 'iife', minify: true, legalComments: 'none', outfile: 'build/highlighter.js' });
 const source = await readFile('src/github-overtype.js', 'utf8');
 const clean = await transform(source, { minifySyntax: true, legalComments: 'none', charset: 'utf8', target: 'es2022' });
-const base = 'https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js';
+const base = 'https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-overtype.user.js';
 const metadata = `// ==UserScript==
 // @name         GitHub OverType Comments
 // @namespace    https://github.com/goulinkh/github-userscripts
@@ -15,8 +15,8 @@ const metadata = `// ==UserScript==
 // @description  OverType Markdown editing and code highlighting for GitHub comments
 // @author       goulinkh
 // @license      MIT
-// @homepageURL  https://github.com/goulinkh/github-userscripts
-// @supportURL   https://github.com/goulinkh/github-userscripts/issues
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
 // @downloadURL  ${base}
 // @updateURL    ${base}
 // @match        https://github.com/*
@@ -33,7 +33,7 @@ console.log(`Built GitHub OverType ${version}`);
 const stickySource = await readFile('src/github-sticky-pr.js', 'utf8');
 const stickyVersion = stickySource.match(/const VERSION = '([^']+)';/)[1];
 const stickyClean = await transform(stickySource, { minifySyntax: true, legalComments: 'none', charset: 'utf8', target: 'es2022' });
-const stickyBase = 'https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js';
+const stickyBase = 'https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-sticky-pr.user.js';
 await writeFile('userscripts/github-sticky-pr.user.js', `// ==UserScript==
 // @name         GitHub Sticky PR Navigation
 // @namespace    https://github.com/goulinkh/github-userscripts
@@ -41,8 +41,8 @@ await writeFile('userscripts/github-sticky-pr.user.js', `// ==UserScript==
 // @description  Compact pinned PR tabs with coordinated GitHub sticky headers
 // @author       goulinkh
 // @license      MIT
-// @homepageURL  https://github.com/goulinkh/github-userscripts
-// @supportURL   https://github.com/goulinkh/github-userscripts/issues
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
 // @downloadURL  ${stickyBase}
 // @updateURL    ${stickyBase}
 // @match        https://github.com/*
@@ -59,7 +59,7 @@ await writeFile('build/apply-sticky.playwright.js', `async page => {
 const docsSource = await readFile('src/google-docs-copy-md.js', 'utf8');
 const docsVersion = docsSource.match(/const VERSION = '([^']+)';/)[1];
 const docsClean = await transform(docsSource, { minifySyntax: true, legalComments: 'none', charset: 'utf8', target: 'es2022' });
-const docsBase = 'https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js';
+const docsBase = 'https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-copy-md.user.js';
 await writeFile('userscripts/google-docs-copy-md.user.js', `// ==UserScript==
 // @name         Google Docs Copy as Markdown
 // @namespace    https://github.com/goulinkh/github-userscripts
@@ -67,8 +67,8 @@ await writeFile('userscripts/google-docs-copy-md.user.js', `// ==UserScript==
 // @description  Adds a Copy as MD button that copies Google Docs' Markdown export to the clipboard
 // @author       goulinkh
 // @license      MIT
-// @homepageURL  https://github.com/goulinkh/github-userscripts
-// @supportURL   https://github.com/goulinkh/github-userscripts/issues
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
 // @downloadURL  ${docsBase}
 // @updateURL    ${docsBase}
 // @match        https://docs.google.com/document/d/*

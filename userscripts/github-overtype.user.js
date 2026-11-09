@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         GitHub OverType Comments
 // @namespace    https://github.com/goulinkh/github-userscripts
-// @version      0.1.2
+// @version      0.1.3
 // @description  OverType Markdown editing and code highlighting for GitHub comments
 // @author       goulinkh
 // @license      MIT
-// @homepageURL  https://github.com/goulinkh/github-userscripts
-// @supportURL   https://github.com/goulinkh/github-userscripts/issues
-// @downloadURL  https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js
-// @updateURL    https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
+// @downloadURL  https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-overtype.user.js
+// @updateURL    https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/github-overtype.user.js
 // @match        https://github.com/*
 // @match        https://gist.github.com/*
 // @require      https://cdn.jsdelivr.net/npm/overtype@2.4.0/dist/overtype.min.js
@@ -490,7 +490,7 @@ SOFTWARE.
   const interval = setInterval(() => {
     records.forEach((r) => r.sync()), scheduleScan();
   }, 750), api = {
-    version: "0.1.2",
+    version: "0.1.3",
     status: () => ({ version: api.version, editors: records.size, stopped }),
     destroy() {
       stopped || (stopped = !0, observer.disconnect(), cancelAnimationFrame(scanFrame), clearInterval(interval), document.removeEventListener("turbo:load", scheduleScan), document.removeEventListener("turbo:render", scheduleScan), records.forEach((r) => r.cleanup()), style.remove(), window[API] === api && delete window[API], console.info(LOG, "Stopped"));

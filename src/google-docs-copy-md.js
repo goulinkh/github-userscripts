@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const KEY = '__googleDocsCopyMarkdown';
   window[KEY]?.destroy();
   const prefix = 'gdocs-copy-md';

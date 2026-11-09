@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = '0.1.0';
+  const VERSION = '0.1.1';
   const KEY = '__githubStickyPR';
   window[KEY]?.destroy();
   const prefix = 'gh-sticky-pr';

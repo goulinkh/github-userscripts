@@ -1,5 +1,9 @@
 # Changelog
 
+## Repository rename (OverType 0.1.3, Sticky PR Navigation 0.1.1, Google Docs Copy as Markdown 0.2.1)
+
+- Repository renamed from `github-userscripts` to `userscripts`; update, download, homepage and support links point to the new name. The namespace is unchanged, so installed copies update in place. No behavior changes.
+
 ## Google Docs Copy as Markdown 0.2.0 (unreleased)
 
 - New option in the right-click menu for how comments appear: hidden HTML comments in place (default), visible quote blocks in place, or a list at the end that names each comment's quoted text, surrounding sentence and section.
