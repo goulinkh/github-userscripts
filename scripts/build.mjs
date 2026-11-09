@@ -56,3 +56,32 @@ await writeFile('build/apply-sticky.playwright.js', `async page => {
   await page.waitForTimeout(100);
   return page.evaluate(() => window.__githubStickyPR.status());
 }`);
+const docsSource = await readFile('src/google-docs-copy-md.js', 'utf8');
+const docsVersion = docsSource.match(/const VERSION = '([^']+)';/)[1];
+const docsClean = await transform(docsSource, { minifySyntax: true, legalComments: 'none', charset: 'utf8', target: 'es2022' });
+const docsBase = 'https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js';
+await writeFile('userscripts/google-docs-copy-md.user.js', `// ==UserScript==
+// @name         Google Docs Copy as Markdown
+// @namespace    https://github.com/goulinkh/github-userscripts
+// @version      ${docsVersion}
+// @description  Adds a Copy as MD button that copies Google Docs' Markdown export to the clipboard
+// @author       goulinkh
+// @license      MIT
+// @homepageURL  https://github.com/goulinkh/github-userscripts
+// @supportURL   https://github.com/goulinkh/github-userscripts/issues
+// @downloadURL  ${docsBase}
+// @updateURL    ${docsBase}
+// @match        https://docs.google.com/document/d/*
+// @match        https://docs.google.com/document/u/*/d/*
+// @noframes
+// @run-at       document-idle
+// @grant        none
+// ==/UserScript==
+\n${docsClean.code}`);
+await writeFile('build/apply-gdocs-copy-md.playwright.js', `async page => {
+  if (new URL(page.url()).hostname !== 'docs.google.com') throw Error('Google Docs only');
+  await page.evaluate(${JSON.stringify(docsSource)});
+  await page.waitForTimeout(100);
+  return page.evaluate(() => window.__googleDocsCopyMarkdown.status());
+}`);
+console.log(`Built Google Docs Copy as Markdown ${docsVersion}`);

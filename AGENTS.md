@@ -2,13 +2,14 @@
 
 ## Scope and release layout
 
-This public repository contains GitHub userscripts. The first is GitHub OverType Comments. Keep unrelated future scripts separate; do not add speculative features during maintenance.
+This public repository contains independent userscripts for different websites: GitHub OverType Comments, GitHub Sticky PR Navigation and Google Docs Copy as Markdown. It is not limited to GitHub. Each script has its own source file, generated userscript, tests, version and release tags; keep scripts separate and do not add speculative features during maintenance. Name new files after the site and feature (`src/<site>-<feature>.js`, `userscripts/<site>-<feature>.user.js`).
 
-- `src/github-overtype.js`: integration and editor lifecycle. Keep runtime source free of explanatory comments; put explanations here or in documentation.
+- `src/github-overtype.js`: OverType integration and editor lifecycle. Keep runtime source free of explanatory comments; put explanations here or in documentation.
 - `src/highlighter.js`: Twinkleplop adapter; escaped token spans and bounded cache.
-- `userscripts/github-overtype.user.js`: committed, installable release artifact. Required userscript metadata and dependency license notices are exceptions to comment removal.
+- `src/github-sticky-pr.js`, `src/google-docs-copy-md.js`: the other scripts, each self-contained.
+- `userscripts/*.user.js`: committed, installable release artifacts. Required userscript metadata and dependency license notices are exceptions to comment removal.
 - `vendor/`: pinned OverType test bytes, SHA-256 checksum, dependency licenses.
-- `scripts/`: reproducible build, checks, isolated browser test runner.
+- `scripts/`: reproducible build, checks, isolated browser test runners (one per script).
 - `tests/`: Playwright function snippets, each accepting `page`.
 - `build/`: ignored generated injection/fixture snippets and highlighter bundle.
 
@@ -20,7 +21,11 @@ Never edit only the generated userscript. Change source, rebuild, and commit the
 
 Preserve GitHub's native sticky positions: adjust offsets, not the positioning mode of toolbars, file headers or sidebars. A spacer must preserve the navigation's named grid area, flex properties, margins and original height when tabs become fixed. The pinned background spans the viewport; on Changes, tab content follows the diff viewer/main content gutters rather than the narrower title grid. On Overview and other PR views, retain the original navigation spacer's centered left/right gutters. Keep the active link's native pseudo-element underline inside the compact row by clearing its negative bottom margin as well as its positional offset; retain GitHub's selection attributes and colors. Compact navigation overrides must beat GitHub's layered important padding; use saved inline-important properties and restore them on unpin/cleanup. Keep the native mini header above tabs, toolbar below tabs, diff headers below the toolbar, and the tree below tabs. Only adjust actual sticky/fixed header targets; never turn whole diff containers sticky. Preserve existing node identities and click handlers; do not clone/reparent navigation or modify form content. Mutation observation excludes inline styles to avoid feedback from offset writes. Disconnect observers/listeners and restore modified properties on destroy, route exit and reapplication. Do not try to remove anonymous listeners from the user's older script; require it to be disabled separately.
 
-## Behavioral invariants
+## Google Docs Copy as Markdown
+
+`src/google-docs-copy-md.js` builds to `userscripts/google-docs-copy-md.user.js` with its own `VERSION` and tags `gdocs-copy-md-vX.Y.Z`; do not bump the package version for it. It uses Google's `/export?format=md` endpoint. That endpoint redirects to a signed `googleusercontent.com` URL that answers `Access-Control-Allow-Origin: *`, so the fetch must use `same-origin` credentials: `include` is rejected by CORS. Start `navigator.clipboard.write` with a promise-backed `ClipboardItem` inside the click, before the export resolves, so the user gesture is not lost. A plain click copies with comments unless the user chose "Markdown only" in the right-click menu (stored in `localStorage` key `gdocs-copy-md:click`); Shift/⌘/Ctrl inverts the choice. Keep the in-page menu rather than `GM_registerMenuCommand`, which would require grants and move the script out of page context. Docs enforces Trusted Types: build DOM with elements and `textContent`, never HTML strings. Parsing the Word export's XML with `DOMParser` requires the script's own Trusted Types policy; a plain string is blocked. Comment copying reads the official Word export: `word/document.xml` has exact `commentRangeStart`/`commentRangeEnd` positions and `word/comments.xml` authors and text. The HTML export only marks range ends without authors; the internal `docos/p/sync` feed needs session tokens and an undocumented positional format. Do not depend on either. The zip is read with `DecompressionStream('deflate-raw')`, no dependency. Notes are inserted only between Markdown blocks (after the block containing the range start), never inside code, tables or lines; escape `-->` in comment text. Paragraph-to-block matching is sequential over punctuation-free text so duplicate paragraphs resolve in order. `scripts/test-gdocs-copy-md.mjs` serves the fixture from `localhost` and redirects to `127.0.0.1` to model the cross-origin redirect, and builds a real `.docx` zip; Playwright route fulfilment does not intercept redirect targets. The test stubs the clipboard and never touches the system clipboard. Live checks may inject `build/apply-gdocs-copy-md.playwright.js` and inspect `window.__googleDocsCopyMarkdown.render(true)`, which builds output without the clipboard; never edit document text or click Copy on the user's behalf without permission, since that overwrites their clipboard.
+
+## GitHub OverType Comments: behavioral invariants
 
 OverType is always the visible editor. Do not add automatic native fallback or an editor-switch button. GitHub's textarea is an inert, hidden-text React/form bridge, not disabled: it must still participate in FormData. Its public focus method forwards to its own OverType input; cleanup restores original properties, attributes, listeners and wrapper styles.
 
@@ -36,7 +41,9 @@ When the visible OverType input gains focus, dispatch a bubbling `focusin` notif
 
 An expanded textarea combobox with its own visible ARIA listbox gets unmodified Enter/Tab/Escape/Up/Down forwarded to that original textarea. Only a consumed key skips OverType handling. Do not route keys to unrelated/global popups or move focus to the native field. Mirror combobox ARIA attributes to the visible input. Synthetic-key acceptance is host-dependent; fixture success is not proof of every live GitHub popup.
 
-## Safety on real GitHub
+## Safety on live sites
+
+Never change user data on a live site as a test. Live checks are read-only inspection and text-preserving injection; each script's section lists its specific limits. The rules below are for GitHub.
 
 Never submit comments/reviews, save review drafts, or modify repository data as a test. Do not automate typing/filling/deleting text in actual comment boxes: GitHub may autosave. Do all synthetic typing, keyboard reproduction, undo, FormData and cleanup tests in the isolated fixture. Do not click submission controls. Ask the user to reproduce live-only typing failures.
 
@@ -60,6 +67,8 @@ npm test
 Pin dependency versions and commit `package-lock.json`. Preserve all required third-party notices when bundling or changing dependencies. Update tests when dependency internals change: local keyboard handling uses the pinned OverType methods.
 
 ## Live debugging through a shared browser
+
+The numbered OverType steps below are the most detailed; other scripts have their own `build/apply-*.playwright.js` snippets described in their sections, and the general rules (shared work profile, explicit tab sharing, no private data in the repository) apply to all.
 
 Use the work-profile browser MCP, not an unrelated personal profile. Re-list shared tabs before selecting one; indices and connections change. The user must explicitly share the relevant tab. Do not inspect unshared browser profiles or navigate a replacement tab over existing unsaved work.
 

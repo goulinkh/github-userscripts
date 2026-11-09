@@ -1,5 +1,16 @@
 # Changelog
 
+## Google Docs Copy as Markdown 0.1.0 (unreleased)
+
+- First version of the separate Google Docs userscript.
+- Compact Markdown icon button beside Share copies Google's Markdown export to the clipboard.
+- Copies with comments by default; Shift, ⌘ or Ctrl-click copies the other variant. A right-click menu chooses the default, saved per browser.
+- Comments are added as HTML comments directly after the block they belong to, with author, exact quoted text and replies, read from the Word export.
+- Clipboard write starts within the click so slow exports keep the user gesture; falls back to plain text writing.
+- If the clipboard is refused after exporting (for example, the tab lost focus), the prepared text is kept and the next click copies it.
+- Records recent failures (phase, error, timing, focus) in `status().failures` and the console, without document text.
+- Clear failures for HTTP errors and non-Markdown responses; keeps editor focus; remounts after title-bar re-renders.
+
 ## Sticky PR Navigation 0.1.0
 
 - First release of the separate sticky PR navigation userscript.

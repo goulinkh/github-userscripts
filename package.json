@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
-    "test": "npm run check && node scripts/test.mjs && node scripts/test-sticky.mjs"
+    "test": "npm run check && node scripts/test.mjs && node scripts/test-sticky.mjs && node scripts/test-gdocs-copy-md.mjs"
   },
   "dependencies": {
     "@twinkleplop/typescript": "0.1.7"

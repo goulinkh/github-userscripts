@@ -1,6 +1,34 @@
-# GitHub userscripts
+# Userscripts
 
-Small userscripts for GitHub by [goulinkh](https://github.com/goulinkh).
+Small, independent browser userscripts by [goulinkh](https://github.com/goulinkh) for sites such as GitHub and Google Docs. Each script installs, updates and is versioned separately; install only the ones you need with a userscript manager such as Tampermonkey.
+
+| Script | Site | What it does |
+| --- | --- | --- |
+| [Google Docs Copy as Markdown](#google-docs-copy-as-markdown) | docs.google.com | Copies a document as Markdown, optionally with comments, to the clipboard |
+| [GitHub Sticky PR Navigation](#github-sticky-pr-navigation) | github.com | Keeps a compact pull-request tab row pinned while scrolling |
+| [GitHub OverType Comments](#github-overtype-comments) | github.com, gist.github.com | Markdown editing and code highlighting in comment fields |
+
+## Google Docs Copy as Markdown
+
+[Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/google-docs-copy-md.user.js)
+
+Adds a Markdown icon button next to Share in Google Docs. Clicking it requests Google's own exports and copies the document as Markdown to the clipboard instead of downloading a file. The icon turns into a check mark when copied, or an error mark with the reason in its tooltip.
+
+By default a click copies the Markdown **with comments**, and Shift-, ⌘- or Ctrl-click copies it without them. Right-click the icon (or use the keyboard's context-menu key) to choose what a plain click copies; the modifier click always does the other. The choice is saved in this browser for docs.google.com and applies to open documents immediately. While hovering, a blue dot on the icon shows that the click will include comments.
+
+Google's Markdown export (the same output as File → Download → Markdown) omits comments, so the script also reads the Word export, which records each comment's exact range, author and text. Each comment becomes an HTML comment placed directly after the paragraph, list item, table, heading or code block it belongs to, quoting the commented text:
+
+```markdown
+Intro with a commented phrase here.
+
+<!-- Comment from Ada on “commented phrase”: Please rephrase -->
+```
+
+HTML comments stay hidden when the Markdown is rendered, and placing them between blocks never breaks code, tables or links. Paragraphs are matched to Markdown blocks by their text; content the Markdown export renders differently (such as smart chips) may place a comment after the preceding block. Resolved comments and suggestions are not included.
+
+The export covers the saved document, so wait for Docs to finish saving recent edits. Whether it includes every document tab or only the current one depends on Google's export. Embedded images are exported inline as data URIs, which can make the copied text large. Documents whose owners disabled downloading cannot be exported.
+
+No dependencies; requests go only to Google's export endpoints, and nothing in the document is modified. Tested in an isolated fixture and by injection into a live document; userscript-manager installation remains unverified. If the tab loses focus before a copy finishes (for example, switching apps right after clicking), the browser refuses the clipboard write; the icon turns amber and the next click copies the already prepared text. For debugging: `window.__googleDocsCopyMarkdown.status()` (including recent `failures` with phase, error, timing and focus, never document text) and `.destroy()`; `.render(true)` returns the text that would be copied without using the clipboard.
 
 ## GitHub Sticky PR Navigation
 
@@ -22,7 +50,7 @@ A Markdown editing surface for GitHub comments and pull-request reviews, powered
 
 [**Install GitHub OverType v0.1.1**](https://github.com/goulinkh/github-userscripts/releases/download/v0.1.1/github-overtype.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-overtype.user.js)
 
-Install a userscript manager such as Tampermonkey, then open the install link and confirm installation. Disable older copies to avoid duplicate editors. Preserve any unsaved text before reloading GitHub.
+Open the install link in a browser with a userscript manager and confirm installation. Disable older copies to avoid duplicate editors. Preserve any unsaved text before reloading GitHub.
 
 ### Features
 
@@ -39,9 +67,13 @@ Supports eligible comment fields on github.com and gist.github.com. Unknown code
 
 This is an initial release. Browser-injected builds have been tested; userscript-manager installation timing still needs independent verification. GitHub's UI can change, and autocomplete forwarding does not guarantee every popup works. Always check your text before submitting. Local browser tests never submit GitHub comments.
 
-### Develop
+### Dependencies and privacy
 
-Requires Node.js 22+, npm, and Python 3.
+OverType 2.4.0 is loaded from a pinned jsDelivr URL by the userscript manager. Twinkleplop 0.1.7 is bundled. Highlighting runs locally; this script does not send comment contents to a highlighting service. Normal GitHub features, network requests, and draft behavior remain GitHub's responsibility.
+
+## Develop
+
+All scripts share one build and test setup. Requires Node.js 22+, npm, and Python 3.
 
 ```sh
 npm ci --ignore-scripts
@@ -50,10 +82,8 @@ npx playwright install chromium
 npm test
 ```
 
-Installable outputs: `userscripts/github-overtype.user.js` and `userscripts/github-sticky-pr.user.js`. Build artifacts for safe browser debugging are generated under `build/`. See [AGENTS.md](AGENTS.md) for the full workflow.
+Installable outputs are in `userscripts/`; each script's source is in `src/` and its isolated browser tests run under `npm test`. Build artifacts for safe browser debugging are generated under `build/`. See [AGENTS.md](AGENTS.md) for the full workflow.
 
-### Dependencies and privacy
-
-OverType 2.4.0 is loaded from a pinned jsDelivr URL by the userscript manager. Twinkleplop 0.1.7 is bundled. Highlighting runs locally; this script does not send comment contents to a highlighting service. Normal GitHub features, network requests, and draft behavior remain GitHub's responsibility.
+## License
 
 MIT licensed. Dependency notices are included under `vendor/` and in bundled output.
