@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Docs Copy as Markdown
 // @namespace    https://github.com/goulinkh/github-userscripts
-// @version      0.1.0
+// @version      0.2.0
 // @description  Adds a Copy as MD button that copies Google Docs' Markdown export to the clipboard
 // @author       goulinkh
 // @license      MIT
@@ -18,9 +18,12 @@
 
 (() => {
   "use strict";
-  const VERSION = "0.1.0", KEY = "__googleDocsCopyMarkdown";
+  const VERSION = "0.2.0", KEY = "__googleDocsCopyMarkdown";
   window[KEY]?.destroy();
-  const prefix = "gdocs-copy-md", SVG = "http://www.w3.org/2000/svg", labels = { idle: "Copy as Markdown", busy: "Copying…", done: "Copied", fail: "Copy failed", retry: "Copy interrupted" }, STORAGE = "gdocs-copy-md:click", choices = { comments: "Markdown with comments", markdown: "Markdown only" }, icons = {
+  const prefix = "gdocs-copy-md", SVG = "http://www.w3.org/2000/svg", labels = { idle: "Copy as Markdown", busy: "Copying…", done: "Copied", fail: "Copy failed", retry: "Copy interrupted" }, settings = {
+    click: { key: "gdocs-copy-md:click", title: "Click copies", announce: "Click now copies", options: { comments: "Markdown with comments", markdown: "Markdown only" } },
+    placement: { key: "gdocs-copy-md:placement", title: "Comments appear as", announce: "Comments now appear as", options: { hidden: "Hidden comments in place", visible: "Visible quotes in place", end: "List at the end" } }
+  }, icons = {
     idle: ["M4 5h16a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 20 19H4a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 4 5zm0 1.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1z", "M5 15.5v-7h2l2 2.6 2-2.6h2v7h-2v-4.2l-2 2.5-2-2.5v4.2z", "M16.5 8.5h2V12h2l-3 3.5-3-3.5h2z"],
     done: ["M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"],
     fail: ["M11 15h2v2h-2zm0-8h2v6h-2zm1-5a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"]
@@ -85,6 +88,8 @@
     }
     .${prefix}-menu[hidden] { display: none; }
     .${prefix}-menu-heading, .${prefix}-menu-note { padding: 4px 16px; color: #444746; font-size: 12px; line-height: 16px; }
+    .${prefix}-menu-group + .${prefix}-menu-group, .${prefix}-menu-note { margin-top: 6px; padding-top: 6px; border-top: 1px solid #e3e3e3; }
+    .${prefix}-menu-note { padding: 10px 16px 4px; }
     .${prefix}-menu-item {
       display: flex;
       align-items: center;
@@ -120,15 +125,24 @@
   const live = document.createElement("span");
   live.className = `${prefix}-status`, live.setAttribute("role", "status"), container.append(button, live), button.setAttribute("aria-haspopup", "menu"), button.setAttribute("aria-expanded", "false");
   const menu = document.createElement("div");
-  menu.className = `${prefix}-menu`, menu.setAttribute("role", "menu"), menu.setAttribute("aria-label", "Copy as Markdown default"), menu.hidden = !0;
-  const heading = document.createElement("div");
-  heading.className = `${prefix}-menu-heading`, heading.setAttribute("aria-hidden", "true"), heading.textContent = "Click copies";
-  const items = Object.entries(choices).map(([value, label]) => {
-    const item = document.createElement("button");
-    return item.type = "button", item.className = `${prefix}-menu-item`, item.setAttribute("role", "menuitemradio"), item.dataset.value = value, item.tabIndex = -1, item.textContent = label, item;
-  }), menuNote = document.createElement("div");
-  menuNote.className = `${prefix}-menu-note`, menuNote.setAttribute("aria-hidden", "true"), menuNote.textContent = "Shift, ⌘ or Ctrl-click copies the other", menu.append(heading, ...items, menuNote);
-  let primary = loadPrimary(), previousFocus = null, state = "idle", detail = "", stopped = !1, resetTimer = 0, copies = 0, policy = null, pending = null;
+  menu.className = `${prefix}-menu`, menu.setAttribute("role", "menu"), menu.setAttribute("aria-label", "Copy as Markdown options"), menu.hidden = !0;
+  const items = [];
+  for (const [setting, { title, options }] of Object.entries(settings)) {
+    const group = document.createElement("div");
+    group.className = `${prefix}-menu-group`, group.setAttribute("role", "group"), group.setAttribute("aria-label", title);
+    const heading = document.createElement("div");
+    heading.className = `${prefix}-menu-heading`, heading.setAttribute("aria-hidden", "true"), heading.textContent = title, group.append(heading);
+    for (const [value, label] of Object.entries(options)) {
+      const item = document.createElement("button");
+      item.type = "button", item.className = `${prefix}-menu-item`, item.setAttribute("role", "menuitemradio"), item.dataset.setting = setting, item.dataset.value = value, item.tabIndex = -1, item.textContent = label, group.append(item), items.push(item);
+    }
+    menu.append(group);
+  }
+  const menuNote = document.createElement("div");
+  menuNote.className = `${prefix}-menu-note`, menuNote.setAttribute("aria-hidden", "true"), menuNote.textContent = "Shift, ⌘ or Ctrl-click copies the other", menu.append(menuNote);
+  const current = {};
+  for (const setting of Object.keys(settings)) current[setting] = load(setting);
+  let previousFocus = null, state = "idle", detail = "", stopped = !1, resetTimer = 0, copies = 0, policy = null, pending = null;
   const failures = [];
   function icon(paths) {
     const svg = document.createElementNS(SVG, "svg");
@@ -139,21 +153,24 @@
     }
     return svg;
   }
-  function loadPrimary() {
+  function load(setting) {
+    const { key: storageKey, options } = settings[setting];
+    let value = null;
     try {
-      return localStorage.getItem(STORAGE) === "markdown" ? "markdown" : "comments";
+      value = localStorage.getItem(storageKey);
     } catch {
-      return "comments";
     }
+    return Object.hasOwn(options, value) ? value : Object.keys(options)[0];
   }
-  const includesComments = (event) => primary === "comments" != !!(event?.shiftKey || event?.metaKey || event?.ctrlKey);
+  const includesComments = (event) => current.click === "comments" != !!(event?.shiftKey || event?.metaKey || event?.ctrlKey);
   function hint() {
-    const other = primary === "comments" ? "without" : "with";
+    const other = current.click === "comments" ? "without" : "with", copies2 = settings.click.options[current.click], placement = settings.placement.options[current.placement].toLowerCase();
     return {
-      title: `Copy as ${choices[primary]}
+      title: `Copy as ${copies2}
 Shift, ⌘ or Ctrl-click: copy ${other} comments
-Right-click: change the default`,
-      label: `Copy as ${choices[primary]}. Shift, Command or Control-click copies ${other} comments. Open the context menu to change the default.`
+Comments: ${placement}
+Right-click: options`,
+      label: `Copy as ${copies2}. Shift, Command or Control-click copies ${other} comments. Comments appear as ${placement}. Open the context menu for options.`
     };
   }
   function show(next, message = "") {
@@ -173,6 +190,7 @@ Right-click: change the default`,
   }
   async function fetchExport(format) {
     const response = await fetch(exportUrl(format), { credentials: "same-origin", cache: "no-store" });
+    if (response.status === 429) throw Error("Google is limiting exports (HTTP 429); try again in a minute");
     if (!response.ok) throw Error(`Export failed with HTTP ${response.status}`);
     const type = response.headers.get("content-type") || "";
     if (/html/i.test(type)) throw Error("Export returned a web page instead of a document");
@@ -261,8 +279,8 @@ Right-click: change the default`,
       else
         for (item && (indent = item[1] + " ".repeat(item[2].length + item[3].length)), i++; i < lines.length && lines[i].trim() && !listItem.test(lines[i]) && !boundary.test(lines[i]); i++) ;
       const source = lines.slice(start, i).join(`
-`).replace(/^\[[^\]]+\]:\s*<data:[^>]*>$/gm, "").replace(/\]\((?:[^()\s]|\([^()]*\))*\)/g, "]");
-      blocks.push({ end: Math.min(i, lines.length), indent, key: key(source) });
+`).replace(/^\[[^\]]+\]:\s*<data:[^>]*>$/gm, "").replace(/\]\((?:[^()\s]|\([^()]*\))*\)/g, "]"), title = /^#{1,6}\s/.test(line) ? line.replace(/^#{1,6}\s+/, "").replace(/\s+#+\s*$/, "").replace(/\\([\\`*_{}[\]()#+\-.!|<>~])/g, "$1").trim() : "";
+      blocks.push({ end: Math.min(i, lines.length), indent, heading: title, key: key(source) });
     }
     return blocks;
   }
@@ -271,23 +289,65 @@ Right-click: change the default`,
     let all = "";
     for (const block of blocks)
       starts.push(all.length), all += block.key;
-    let cursor = 0, current = -1;
+    let cursor = 0, current2 = -1;
     return paragraphs.map((text) => {
       const wanted = key(text), at = wanted ? all.indexOf(wanted, cursor) : -1;
       if (at >= 0)
-        for (cursor = at + wanted.length, current = 0; current + 1 < starts.length && starts[current + 1] <= at; ) current++;
-      return current;
+        for (cursor = at + wanted.length, current2 = 0; current2 + 1 < starts.length && starts[current2 + 1] <= at; ) current2++;
+      return current2;
     });
   }
-  const safe = (value) => value.replace(/<!--/g, "<! --").replace(/--!?>/g, "-- >");
-  function note(thread, quote, emptyLine) {
-    const [root, ...replies] = thread, short = quote.length > 100 ? `${quote.slice(0, 100).trimEnd()}…` : quote, where = short ? ` on “${short}”` : emptyLine ? " on an empty line" : "", lines = [`Comment${root.author ? ` from ${root.author}` : ""}${where}: ${root.body}`, ...replies.map((reply) => `Reply${reply.author ? ` from ${reply.author}` : ""}: ${reply.body}`)], text = safe(lines.join(`
+  const safe = (value) => value.replace(/<!--/g, "<! --").replace(/--!?>/g, "-- >"), shorten = (value, limit = 100) => value.length > limit ? `${value.slice(0, limit).trimEnd()}…` : value, who = (kind, comment) => `${kind}${comment.author ? ` from ${comment.author}` : ""}`;
+  function where(item, detailed) {
+    return item.quote ? ` on “${item.quote}”` : item.emptyLine ? detailed && item.before ? ` on an empty line after “${item.before}”` : " on an empty line" : "";
+  }
+  function hiddenNote(item) {
+    const [root, ...replies] = item.comments, lines = [`${who("Comment", root)}${where(item)}: ${root.body}`, ...replies.map((reply) => `${who("Reply", reply)}: ${reply.body}`)], text = safe(lines.join(`
 `));
     return text.includes(`
 `) ? ["<!--", ...text.split(`
 `), "-->"] : [`<!-- ${text} -->`];
   }
-  async function withComments(markdown, docx) {
+  function visibleNote(item) {
+    const lines = [];
+    return item.comments.forEach((comment, index) => {
+      const [first, ...rest] = comment.body.split(`
+`);
+      index && lines.push(">"), lines.push(index ? `> **${who("Reply", comment)}:** ${first}` : `> **${who("Comment", comment)}**${where(item)}: ${first}`);
+      for (const line of rest) line.trim() && lines.push(">", `> ${line}`);
+    }), lines;
+  }
+  function listedNote(item) {
+    const [root, ...replies] = item.comments, section = item.section ? `, under “${item.section}”` : "", context = item.context ? ` in “${item.context}”` : "", lines = [`- **${who("Comment", root)}**${where(item, !0)}${context}${section}`];
+    root.body.split(`
+`).forEach((line, index) => lines.push(index && line.trim() ? "  >" : null, line.trim() ? `  > ${line}` : null));
+    for (const reply of replies) {
+      const [first, ...rest] = reply.body.split(`
+`);
+      lines.push(`  - **${who("Reply", reply)}:** ${first}`, ...rest.map((line) => `    ${line}`));
+    }
+    return lines.filter((line) => line !== null);
+  }
+  function contextOf(paragraphs, { start, end }, quote) {
+    if (!quote || !end || start.index !== end.index) return "";
+    const text = paragraphs[start.index];
+    if (flat(text) === quote) return "";
+    if (flat(text).length <= 80) return flat(text);
+    const from = Math.max(0, start.offset - 30), to = Math.min(text.length, end.offset + 30);
+    return `${from ? "…" : ""}${flat(text.slice(from, to))}${to < text.length ? "…" : ""}`;
+  }
+  function previousText(paragraphs, index) {
+    for (let i = index - 1; i >= 0; i--) {
+      const text = flat(paragraphs[i]);
+      if (key(text)) return text.length > 60 ? `…${text.slice(-60).trimStart()}` : text;
+    }
+    return "";
+  }
+  function sectionOf(blocks, owner) {
+    for (let i = owner; i >= 0; i--) if (blocks[i].heading) return blocks[i].heading;
+    return "";
+  }
+  async function withComments(markdown, docx, placement) {
     const files = await unzip(docx, ["word/document.xml", "word/comments.xml"]);
     if (!files["word/comments.xml"] || !files["word/document.xml"]) return { text: markdown, count: 0 };
     const { paragraphs, ranges } = readParagraphs(parseXml(files["word/document.xml"])), threads = /* @__PURE__ */ new Map();
@@ -299,18 +359,33 @@ Right-click: change the default`,
     }
     if (!threads.size) return { text: markdown, count: 0 };
     const lines = markdown.split(`
-`), blocks = markdownBlocks(lines), owners = locate(paragraphs, blocks), inserts = /* @__PURE__ */ new Map(), ordered = [...threads.values()].sort((a, b) => a.range.start.index - b.range.start.index || a.range.start.offset - b.range.start.offset);
-    for (const { range, comments } of ordered) {
-      const owner = owners[range.start.index], quote = flat(quoteOf(paragraphs, range)), emptyLine = !quote && !key(paragraphs[range.start.index]);
-      inserts.has(owner) || inserts.set(owner, []), inserts.get(owner).push(...note(comments, quote, emptyLine).map((line) => (blocks[owner]?.indent || "") + line));
-    }
+`), blocks = markdownBlocks(lines), owners = locate(paragraphs, blocks), items2 = [...threads.values()].sort((a, b) => a.range.start.index - b.range.start.index || a.range.start.offset - b.range.start.offset).map(({ range, comments }) => {
+      const owner = owners[range.start.index], quote = shorten(flat(quoteOf(paragraphs, range))), emptyLine = !quote && !key(paragraphs[range.start.index]);
+      return { owner, comments, quote, emptyLine, context: contextOf(paragraphs, range, quote), before: emptyLine ? previousText(paragraphs, range.start.index) : "", section: sectionOf(blocks, owner) };
+    });
+    if (placement === "end")
+      return { text: `${markdown.trimEnd()}
+
+---
+
+## Comments
+
+${items2.map((item) => listedNote(item).join(`
+`)).join(`
+
+`)}
+`, count: threads.size };
+    const inserts = /* @__PURE__ */ new Map();
+    for (const item of items2)
+      inserts.has(item.owner) || inserts.set(item.owner, []), inserts.get(item.owner).push(placement === "visible" ? visibleNote(item) : hiddenNote(item));
     for (const owner of [...inserts.keys()].sort((a, b) => b - a)) {
+      const notes = inserts.get(owner), block = (placement === "visible" ? notes.flatMap((note, index) => index ? ["", ...note] : note) : notes.flat()).map((line) => (blocks[owner]?.indent || "") + line);
       if (owner < 0) {
-        lines.splice(0, 0, ...inserts.get(owner), "");
+        lines.splice(0, 0, ...block, "");
         continue;
       }
       const at = blocks[owner].end;
-      lines.splice(at, 0, "", ...inserts.get(owner), ...at < lines.length && lines[at] !== "" ? [""] : []);
+      lines.splice(at, 0, "", ...block, ...at < lines.length && lines[at] !== "" ? [""] : []);
     }
     return { text: lines.join(`
 `), count: threads.size };
@@ -330,8 +405,8 @@ Right-click: change the default`,
   const tag = (phase) => (error) => {
     throw Object.assign(error instanceof Error ? error : Error(String(error)), { phase: error?.phase || phase });
   };
-  function render(comments) {
-    return comments ? Promise.all([fetchExport("md"), fetchExport("docx")]).catch(tag("export")).then(([markdown, docx]) => withComments(markdown, docx).catch(tag("comments"))) : fetchExport("md").catch(tag("export")).then((text) => ({ text, count: null }));
+  function render(comments, placement = current.placement) {
+    return comments ? Promise.all([fetchExport("md"), fetchExport("docx")]).catch(tag("export")).then(([markdown, docx]) => withComments(markdown, docx, placement).catch(tag("comments"))) : fetchExport("md").catch(tag("export")).then((text) => ({ text, count: null }));
   }
   async function whenFocused(limit = 1500) {
     for (const until = performance.now() + limit; !document.hasFocus() && performance.now() < until; ) await new Promise((resolve) => setTimeout(resolve, 50));
@@ -388,16 +463,16 @@ Right-click: change the default`,
     const active = event.type !== "pointerleave" && includesComments(event);
     button.dataset.comments !== String(active) && (button.dataset.comments = String(active));
   }
-  function choose(value, announce = !0) {
-    primary = value === "markdown" ? "markdown" : "comments", state === "idle" && show("idle"), announce && (live.textContent = `Click now copies ${choices[primary]}`);
+  function choose(setting, value, announce = !0) {
+    Object.hasOwn(settings[setting].options, value) && (current[setting] = value, state === "idle" && show("idle"), announce && (live.textContent = `${settings[setting].announce} ${settings[setting].options[value].toLowerCase()}`));
   }
   function openMenu(event) {
     if (event.preventDefault(), !menu.hidden) return closeMenu(!0);
     previousFocus = document.activeElement;
-    for (const item of items) item.setAttribute("aria-checked", String(item.dataset.value === primary));
+    for (const item of items) item.setAttribute("aria-checked", String(current[item.dataset.setting] === item.dataset.value));
     document.body.append(menu), menu.hidden = !1;
     const rect = button.getBoundingClientRect();
-    menu.style.top = `${Math.round(rect.bottom + 4)}px`, menu.style.left = `${Math.round(Math.max(8, Math.min(rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8)))}px`, button.setAttribute("aria-expanded", "true"), items.find((item) => item.dataset.value === primary).focus(), document.addEventListener("pointerdown", dismissOutside, !0), window.addEventListener("blur", dismiss);
+    menu.style.top = `${Math.round(rect.bottom + 4)}px`, menu.style.left = `${Math.round(Math.max(8, Math.min(rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8)))}px`, button.setAttribute("aria-expanded", "true"), items.find((item) => item.getAttribute("aria-checked") === "true").focus(), document.addEventListener("pointerdown", dismissOutside, !0), window.addEventListener("blur", dismiss);
   }
   function closeMenu(restoreFocus) {
     menu.hidden || (menu.hidden = !0, menu.remove(), button.setAttribute("aria-expanded", "false"), document.removeEventListener("pointerdown", dismissOutside, !0), window.removeEventListener("blur", dismiss), restoreFocus && previousFocus?.isConnected && previousFocus.focus(), previousFocus = null);
@@ -420,14 +495,14 @@ Right-click: change the default`,
     const item = event.target.closest(`.${prefix}-menu-item`);
     if (item) {
       try {
-        localStorage.setItem(STORAGE, item.dataset.value);
+        localStorage.setItem(settings[item.dataset.setting].key, item.dataset.value);
       } catch {
       }
-      closeMenu(!0), choose(item.dataset.value);
+      closeMenu(!0), choose(item.dataset.setting, item.dataset.value);
     }
   }
   function storageChanged(event) {
-    event.key === STORAGE && choose(loadPrimary(), !1);
+    for (const [setting, { key: storageKey }] of Object.entries(settings)) event.key === storageKey && choose(setting, load(setting), !1);
   }
   function mount() {
     if (stopped) return;
@@ -441,9 +516,9 @@ Right-click: change the default`,
   window[KEY] = {
     version: VERSION,
     exportUrl: (format) => exportUrl(format),
-    status: () => ({ version: VERSION, mounted: container.isConnected, click: primary, state, detail, copies, stopped, failures: failures.map((entry) => ({ ...entry })) }),
+    status: () => ({ version: VERSION, mounted: container.isConnected, click: current.click, placement: current.placement, state, detail, copies, stopped, failures: failures.map((entry) => ({ ...entry })) }),
     copy,
-    render: (comments = primary === "comments") => render(comments),
+    render: (comments = current.click === "comments", placement = current.placement) => render(comments, placement),
     destroy() {
       stopped = !0, clearInterval(interval), clearTimeout(resetTimer);
       for (const [name, listener] of listeners) button.removeEventListener(name, listener);

@@ -1,6 +1,11 @@
 # Changelog
 
-## Google Docs Copy as Markdown 0.1.0 (unreleased)
+## Google Docs Copy as Markdown 0.2.0 (unreleased)
+
+- New option in the right-click menu for how comments appear: hidden HTML comments in place (default), visible quote blocks in place, or a list at the end that names each comment's quoted text, surrounding sentence and section.
+- Google rate-limiting exports (HTTP 429) now shows "try again in a minute" instead of a bare HTTP error.
+
+## Google Docs Copy as Markdown 0.1.0 (pushed to main, not released)
 
 - First version of the separate Google Docs userscript.
 - Compact Markdown icon button beside Share copies Google's Markdown export to the clipboard.

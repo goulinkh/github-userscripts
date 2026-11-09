@@ -48,6 +48,7 @@ const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:d
 ${p(run('Title'))}
 ${p(run('Intro with a '), '<w:hyperlink><w:r><w:t>link</w:t></w:r></w:hyperlink>', run(' and '), start(0), start(1), run('commented phrase'), end(0), end(1), run(' here.'))}
 ${p(start(2))}${p(end(2))}
+${p(run('Details'))}
 ${p(run('first item'))}
 ${p(run('second '), start(3), run('item'), end(3))}
 <w:tbl><w:tr>${cell(run('A'))}${cell(run('B'))}</w:tr><w:tr>${cell(run('cell one'))}${cell(start(4), run('cell two'), end(4))}</w:tr></w:tbl>
@@ -81,8 +82,10 @@ function zip(files) {
 }
 const commentedDocx = zip([{name: '[Content_Types].xml', text: '<Types/>', store: true}, {name: 'word/fonts/big.ttf', text: 'x'.repeat(5000)}, {name: 'word/document.xml', text: documentXml}, {name: 'word/comments.xml', text: commentsXml, store: true}]);
 const plainDocx = zip([{name: 'word/document.xml', text: `<w:document xmlns:w="${W}"><w:body>${p(run('Fixture title'))}</w:body></w:document>`}]);
-const commentedMarkdown = '# Title\n\nIntro with a [link](https://example.com/a_(b)) and commented phrase here.\n\n* first item  \n* second item\n\n| A | B |\n| :---- | :---- |\n| cell one | cell two |\n\n```\ncode line\n```\n\nRepeat paragraph.\n\nRepeat paragraph.\n\nFinal words with snake\\_case.\n\n';
-const commentedResult = '# Title\n\nIntro with a [link](https://example.com/a_(b)) and commented phrase here.\n\n<!--\nComment from Ada on “commented phrase”: Please -- > rephrase\nReply from Bob: Done\n-->\n<!-- Comment from Cy on an empty line: Gap -->\n\n* first item  \n* second item\n\n  <!-- Comment from Ada on “item”: Second item note -->\n\n| A | B |\n| :---- | :---- |\n| cell one | cell two |\n\n<!-- Comment from Ada on “cell two”: Cell note -->\n\n```\ncode line\n```\n\n<!--\nComment from Ada on “line”: Line one\nLine two\n-->\n\nRepeat paragraph.\n\nRepeat paragraph.\n\n<!-- Comment from Ada on “Repeat”: Second repeat -->\n<!-- Comment from Ada on “paragraph. Final”: Spans -->\n\nFinal words with snake\\_case.\n\n<!-- Comment from Ada on “snake_case”: Escapes -->\n\n';
+const commentedMarkdown = '# Title\n\nIntro with a [link](https://example.com/a_(b)) and commented phrase here.\n\n## Details\n\n* first item  \n* second item\n\n| A | B |\n| :---- | :---- |\n| cell one | cell two |\n\n```\ncode line\n```\n\nRepeat paragraph.\n\nRepeat paragraph.\n\nFinal words with snake\\_case.\n\n';
+const commentedResult = '# Title\n\nIntro with a [link](https://example.com/a_(b)) and commented phrase here.\n\n<!--\nComment from Ada on “commented phrase”: Please -- > rephrase\nReply from Bob: Done\n-->\n<!-- Comment from Cy on an empty line: Gap -->\n\n## Details\n\n* first item  \n* second item\n\n  <!-- Comment from Ada on “item”: Second item note -->\n\n| A | B |\n| :---- | :---- |\n| cell one | cell two |\n\n<!-- Comment from Ada on “cell two”: Cell note -->\n\n```\ncode line\n```\n\n<!--\nComment from Ada on “line”: Line one\nLine two\n-->\n\nRepeat paragraph.\n\nRepeat paragraph.\n\n<!-- Comment from Ada on “Repeat”: Second repeat -->\n<!-- Comment from Ada on “paragraph. Final”: Spans -->\n\nFinal words with snake\\_case.\n\n<!-- Comment from Ada on “snake_case”: Escapes -->\n\n';
+const visibleResult = "# Title\n\nIntro with a [link](https://example.com/a_(b)) and commented phrase here.\n\n> **Comment from Ada** on “commented phrase”: Please --> rephrase\n>\n> **Reply from Bob:** Done\n\n> **Comment from Cy** on an empty line: Gap\n\n## Details\n\n* first item  \n* second item\n\n  > **Comment from Ada** on “item”: Second item note\n\n| A | B |\n| :---- | :---- |\n| cell one | cell two |\n\n> **Comment from Ada** on “cell two”: Cell note\n\n```\ncode line\n```\n\n> **Comment from Ada** on “line”: Line one\n>\n> Line two\n\nRepeat paragraph.\n\nRepeat paragraph.\n\n> **Comment from Ada** on “Repeat”: Second repeat\n\n> **Comment from Ada** on “paragraph. Final”: Spans\n\nFinal words with snake\\_case.\n\n> **Comment from Ada** on “snake_case”: Escapes\n\n";
+const endResult = "# Title\n\nIntro with a [link](https://example.com/a_(b)) and commented phrase here.\n\n## Details\n\n* first item  \n* second item\n\n| A | B |\n| :---- | :---- |\n| cell one | cell two |\n\n```\ncode line\n```\n\nRepeat paragraph.\n\nRepeat paragraph.\n\nFinal words with snake\\_case.\n\n---\n\n## Comments\n\n- **Comment from Ada** on “commented phrase” in “Intro with a link and commented phrase here.”, under “Title”\n  > Please --> rephrase\n  - **Reply from Bob:** Done\n\n- **Comment from Cy** on an empty line after “Intro with a link and commented phrase here.”, under “Title”\n  > Gap\n\n- **Comment from Ada** on “item” in “second item”, under “Details”\n  > Second item note\n\n- **Comment from Ada** on “cell two”, under “Details”\n  > Cell note\n\n- **Comment from Ada** on “line” in “code line”, under “Details”\n  > Line one\n  >\n  > Line two\n\n- **Comment from Ada** on “Repeat” in “Repeat paragraph.”, under “Details”\n  > Second repeat\n\n- **Comment from Ada** on “paragraph. Final”, under “Details”\n  > Spans\n\n- **Comment from Ada** on “snake_case” in “Final words with snake_case.”, under “Details”\n  > Escapes\n";
 const requests = [];
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://' + request.headers.host);
@@ -101,6 +104,7 @@ const server = createServer(async (request, response) => {
     response.writeHead(200, {'content-type': 'text/html', 'content-security-policy': "require-trusted-types-for 'script'"});
     return response.end(html);
   }
+  if (url.pathname.includes('/d/limited/')) { response.writeHead(429, {'content-type': 'text/html'}); return response.end('slow down'); }
   if (url.pathname.includes('/d/forbidden/')) { response.writeHead(403, {'content-type': 'text/html'}); return response.end('denied'); }
   if (url.pathname.includes('/d/login/')) { response.writeHead(200, {'content-type': 'text/html'}); return response.end('<p>Sign in</p>'); }
   response.writeHead(307, {location: `http://127.0.0.1:${port}/export/signed?format=${url.searchParams.get('format')}&doc=${url.pathname.split('/d/')[1].split('/')[0]}&dat=fixture`});
@@ -133,7 +137,7 @@ try {
   check(await page.evaluate(() => document.querySelector('.gdocs-copy-md-container').nextElementSibling.id === 'docs-titlebar-share-client-button'), 'button sits before Share');
   check(await page.locator('.gdocs-copy-md-button').evaluate(b => {
     const r = b.getBoundingClientRect();
-    return r.width === 42 && r.height === 42 && b.querySelector('svg') && b.textContent === '' && /^Copy as Markdown with comments\./.test(b.getAttribute('aria-label')) && /^Copy as Markdown with comments\nShift, ⌘ or Ctrl-click: copy without comments\nRight-click/.test(b.title) && b.getAttribute('aria-haspopup') === 'menu';
+    return r.width === 42 && r.height === 42 && b.querySelector('svg') && b.textContent === '' && /^Copy as Markdown with comments\./.test(b.getAttribute('aria-label')) && /^Copy as Markdown with comments\nShift, ⌘ or Ctrl-click: copy without comments\nComments: hidden comments in place\nRight-click: options$/.test(b.title) && b.getAttribute('aria-haspopup') === 'menu';
   }), 'compact icon button with accessible name and modifier hint');
   check(await page.evaluate(() => window.__googleDocsCopyMarkdown.exportUrl()) === origin + '/document/d/doc123/export?format=md', 'export URL drops edit path and tab');
   check(await page.evaluate(async () => { try { await fetch('/document/d/doc123/export?format=md', {credentials: 'include'}); return false; } catch { return true; } }), 'fixture models Google rejecting credentialed redirect reads');
@@ -193,8 +197,9 @@ try {
   check(await page.evaluate(() => {
     const menu = document.querySelector('.gdocs-copy-md-menu[role=menu]');
     const checked = [...menu.querySelectorAll('[role=menuitemradio]')].map(item => item.getAttribute('aria-checked'));
-    return !menu.hidden && checked.join() === 'true,false' && document.activeElement.dataset.value === 'comments' && document.querySelector('.gdocs-copy-md-button').getAttribute('aria-expanded') === 'true';
-  }), 'right-click opens the default menu on the current choice');
+    const groups = [...menu.querySelectorAll('[role=group]')].map(group => group.getAttribute('aria-label') + ':' + [...group.querySelectorAll('[role=menuitemradio]')].map(item => item.textContent).join('|'));
+    return !menu.hidden && checked.join() === 'true,false,true,false,false' && groups.join() === 'Click copies:Markdown with comments|Markdown only,Comments appear as:Hidden comments in place|Visible quotes in place|List at the end' && document.activeElement.dataset.value === 'comments' && document.querySelector('.gdocs-copy-md-button').getAttribute('aria-expanded') === 'true';
+  }), 'right-click opens both option groups on the current choices');
   await page.keyboard.press('ArrowDown');
   check(await page.evaluate(() => document.activeElement.dataset.value) === 'markdown', 'arrow keys move within the menu');
   await page.keyboard.press('Enter');
@@ -208,13 +213,28 @@ try {
   await page.click('.gdocs-copy-md-button', {modifiers: ['Shift']});
   await waitState('done');
   check((await clip()).text === commentedResult, 'Shift-click includes comments when the default is Markdown only');
+  await page.waitForFunction(() => window.__googleDocsCopyMarkdown.status().state === 'idle', null, {timeout: 4000});
+  check(await page.evaluate(() => window.__googleDocsCopyMarkdown.render(true, 'visible').then(r => r.text)) === visibleResult, 'visible placement renders block quotes in place');
+  check(await page.evaluate(() => window.__googleDocsCopyMarkdown.render(true, 'end').then(r => r.text)) === endResult, 'end placement lists comments with section and context');
+  await page.locator('#editor').focus();
+  await page.click('.gdocs-copy-md-button', {button: 'right'});
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+  check(await page.evaluate(() => document.activeElement.dataset.setting + ':' + document.activeElement.dataset.value) === 'placement:end', 'arrow keys cross option groups');
+  await page.keyboard.press('Enter');
+  check(await page.evaluate(() => ({stored: localStorage.getItem('gdocs-copy-md:placement'), click: localStorage.getItem('gdocs-copy-md:click'), status: window.__googleDocsCopyMarkdown.status(), focus: document.activeElement.id, title: document.querySelector('.gdocs-copy-md-button').title})).then(r => r.stored === 'end' && r.click === 'markdown' && r.status.placement === 'end' && r.status.click === 'markdown' && r.focus === 'editor' && /\nComments: list at the end\n/.test(r.title)), 'choosing a placement saves it without changing the click default');
+  await resetClip();
+  await page.click('.gdocs-copy-md-button', {modifiers: ['Shift']});
+  await waitState('done');
+  check((await clip()).text === endResult, 'copies with comments use the chosen placement');
+  await page.waitForFunction(() => window.__googleDocsCopyMarkdown.status().state === 'idle', null, {timeout: 4000});
   await open('/document/d/commented/edit');
-  check((await status()).click === 'markdown', 'default persists across reloads');
+  check((await status()).click === 'markdown' && (await status()).placement === 'end', 'options persist across reloads');
   const other = await context.newPage();
   await other.goto(origin + '/document/d/commented/edit');
-  await other.evaluate(() => localStorage.setItem('gdocs-copy-md:click', 'comments'));
+  await other.evaluate(() => { localStorage.setItem('gdocs-copy-md:click', 'comments'); localStorage.setItem('gdocs-copy-md:placement', 'bogus'); });
   await other.close();
-  await page.waitForFunction(() => window.__googleDocsCopyMarkdown.status().click === 'comments', null, {timeout: 3000});
+  await page.waitForFunction(() => window.__googleDocsCopyMarkdown.status().click === 'comments' && window.__googleDocsCopyMarkdown.status().placement === 'hidden', null, {timeout: 3000});
+  check(true, 'unknown stored placement falls back to hidden comments');
   check(true, 'default changes in another tab apply immediately');
   await page.click('.gdocs-copy-md-button', {button: 'right'});
   await page.keyboard.press('Escape');
@@ -267,6 +287,10 @@ try {
   check(/HTTP 403/.test(s.detail) && c.text === null, 'HTTP errors fail without clipboard content', {s, c});
   check(s.failures.length === 1 && s.failures[0].phase === 'export' && /HTTP 403/.test(s.failures[0].message) && s.failures[0].comments === true && typeof s.failures[0].ms === 'number', 'export failure is recorded with its phase', s.failures);
   check(await page.locator('.gdocs-copy-md-button').evaluate(b => b.dataset.state === 'fail' && /^Copy failed: Export failed with HTTP 403/.test(b.title)), 'failure state and tooltip');
+  await open('/document/d/limited/edit');
+  await page.click('.gdocs-copy-md-button');
+  await waitState('fail');
+  check(/^Google is limiting exports \(HTTP 429\); try again in a minute$/.test((await status()).detail), 'rate limiting gets an actionable message', await status());
   await open('/document/d/login/edit');
   await resetClip();
   await page.click('.gdocs-copy-md-button');

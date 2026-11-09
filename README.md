@@ -5,7 +5,7 @@ Small, independent browser userscripts by [goulinkh](https://github.com/goulinkh
 | Script | Site | What it does |
 | --- | --- | --- |
 | [Google Docs Copy as Markdown](#google-docs-copy-as-markdown) | docs.google.com | Copies a document as Markdown, optionally with comments, to the clipboard |
-| [GitHub Sticky PR Navigation](#github-sticky-pr-navigation) | github.com | Keeps a compact pull-request tab row pinned while scrolling |
+| [GitHub Sticky PR Navigation](#github-sticky-pr-navigation) | github.com | Keeps a compact pull-request tab row pinned while scrolling (GitHub's experimental new pull request pages only) |
 | [GitHub OverType Comments](#github-overtype-comments) | github.com, gist.github.com | Markdown editing and code highlighting in comment fields |
 
 ## Google Docs Copy as Markdown
@@ -14,19 +14,36 @@ Small, independent browser userscripts by [goulinkh](https://github.com/goulinkh
 
 Adds a Markdown icon button next to Share in Google Docs. Clicking it requests Google's own exports and copies the document as Markdown to the clipboard instead of downloading a file. The icon turns into a check mark when copied, or an error mark with the reason in its tooltip.
 
-By default a click copies the Markdown **with comments**, and Shift-, ⌘- or Ctrl-click copies it without them. Right-click the icon (or use the keyboard's context-menu key) to choose what a plain click copies; the modifier click always does the other. The choice is saved in this browser for docs.google.com and applies to open documents immediately. While hovering, a blue dot on the icon shows that the click will include comments.
+By default a click copies the Markdown **with comments**, and Shift-, ⌘- or Ctrl-click copies it without them. Right-click the icon (or use the keyboard's context-menu key) for two options: what a plain click copies (the modifier click always does the other), and how comments appear. The choices are saved in this browser for docs.google.com and apply to open documents immediately. While hovering, a blue dot on the icon shows that the click will include comments.
 
-Google's Markdown export (the same output as File → Download → Markdown) omits comments, so the script also reads the Word export, which records each comment's exact range, author and text. Each comment becomes an HTML comment placed directly after the paragraph, list item, table, heading or code block it belongs to, quoting the commented text:
+Google's Markdown export (the same output as File → Download → Markdown) omits comments, so the script also reads the Word export, which records each comment's exact range, author, text and replies. Comments can appear in three ways:
 
-```markdown
-Intro with a commented phrase here.
+- **Hidden comments in place** (default): an HTML comment directly after the paragraph, list item, table, heading or code block the comment belongs to. It stays invisible when the Markdown is rendered.
 
-<!-- Comment from Ada on “commented phrase”: Please rephrase -->
-```
+  ```markdown
+  Intro with a commented phrase here.
 
-HTML comments stay hidden when the Markdown is rendered, and placing them between blocks never breaks code, tables or links. Paragraphs are matched to Markdown blocks by their text; content the Markdown export renders differently (such as smart chips) may place a comment after the preceding block. Resolved comments and suggestions are not included.
+  <!-- Comment from Ada on “commented phrase”: Please rephrase -->
+  ```
 
-The export covers the saved document, so wait for Docs to finish saving recent edits. Whether it includes every document tab or only the current one depends on Google's export. Embedded images are exported inline as data URIs, which can make the copied text large. Documents whose owners disabled downloading cannot be exported.
+- **Visible quotes in place**: a quote block at the same position, shown when rendered.
+
+  ```markdown
+  > **Comment from Ada** on “commented phrase”: Please rephrase
+  ```
+
+- **List at the end**: the document stays unchanged, followed by a `## Comments` section. Each entry names the commented text, the sentence around it and the section heading it falls under.
+
+  ```markdown
+  ## Comments
+
+  - **Comment from Ada** on “commented phrase” in “Intro with a commented phrase here.”, under “Overview”
+    > Please rephrase
+  ```
+
+Comments in place are inserted only between blocks, so they never break code, tables or links. Paragraphs are matched to Markdown blocks by their text; content the Markdown export renders differently (such as smart chips) may place a comment after the preceding block. Resolved comments and suggestions are not included.
+
+The export covers the saved document, so wait for Docs to finish saving recent edits. Whether it includes every document tab or only the current one depends on Google's export. Embedded images are exported inline as data URIs, which can make the copied text large. Documents whose owners disabled downloading cannot be exported. Copying with comments downloads two exports, and Google temporarily refuses exports after many in quick succession; the error then says to try again in a minute.
 
 No dependencies; requests go only to Google's export endpoints, and nothing in the document is modified. Tested in an isolated fixture and by injection into a live document; userscript-manager installation remains unverified. If the tab loses focus before a copy finishes (for example, switching apps right after clicking), the browser refuses the clipboard write; the icon turns amber and the next click copies the already prepared text. For debugging: `window.__googleDocsCopyMarkdown.status()` (including recent `failures` with phase, error, timing and focus, never document text) and `.destroy()`; `.render(true)` returns the text that would be copied without using the clipboard.
 
@@ -34,13 +51,15 @@ No dependencies; requests go only to Google's export endpoints, and nothing in t
 
 [**Install Sticky PR Navigation v0.1.0**](https://github.com/goulinkh/github-userscripts/releases/download/sticky-pr-v0.1.0/github-sticky-pr.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/github-userscripts/main/userscripts/github-sticky-pr.user.js)
 
+> **Only works with GitHub's new pull request experience,** which GitHub currently offers as an experimental preview. The stable pull request pages are not supported or tested.
+
 A separate script in `userscripts/github-sticky-pr.user.js`. Pins a compact 36px PR tab row below GitHub's compact header, then offsets the existing Changes toolbar, active diff headers and sticky file tree. It retains GitHub's own sticky behavior and preserves the tabs' original layout space to avoid scroll jumps.
 
 Disable the older “Sticky PR navigation and Changes” script before installing this one; do not run both. Its old anonymous listeners cannot be safely removed by the replacement, so preserve unsaved work before reloading. Temporary development injection does not persist across reloads.
 
 The background spans the page. Overview retains the original centered tab alignment; Changes aligns tabs with its wider content gutters. The selected tab keeps GitHub's native underline and colors. No external dependencies are loaded.
 
-Tested against the current desktop Overview and Changes views and an isolated fixture covering grid layout, compact spacing, responsive widths, stack alignment, reapplication and cleanup. Other GitHub layouts and userscript-manager installation remain unverified. Layouts without native sticky toolbars/sidebars retain their native behavior.
+Tested against the preview's desktop Overview and Changes views and an isolated fixture covering grid layout, compact spacing, responsive widths, stack alignment, reapplication and cleanup. Other GitHub layouts and userscript-manager installation remain unverified. Layouts without native sticky toolbars/sidebars retain their native behavior.
 
 For debugging: `window.__githubStickyPR.status()` reports state; `window.__githubStickyPR.destroy()` restores adjusted styles and removes the integration.
 
