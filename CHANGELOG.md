@@ -1,5 +1,13 @@
 # Changelog
 
+## Google Docs Markdown Clipboard 0.1.0
+
+- First version of the separate Google Docs Markdown Clipboard userscript.
+- ⌘C/Ctrl+C in a document runs Docs' Copy as Markdown, and ⌘V/Ctrl+V runs Paste from Markdown, through the existing menu commands.
+- Falls back to native copy/paste when the Markdown command is disabled or hidden, when clipboard permission is denied (paste), or outside Chrome-based browsers (paste).
+- Content copied from Google Docs, Sheets or Slides (including ⌘X/Ctrl+X cuts) keeps pasting natively with full formatting.
+- Other shortcuts and inputs outside the document body are unchanged.
+
 ## Repository rename (OverType 0.1.3, Sticky PR Navigation 0.1.1, Google Docs Copy as Markdown 0.2.1)
 
 - Repository renamed from `github-userscripts` to `userscripts`; update, download, homepage and support links point to the new name. The namespace is unchanged, so installed copies update in place. No behavior changes.

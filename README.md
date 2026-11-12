@@ -5,6 +5,7 @@ Small, independent browser userscripts by [goulinkh](https://github.com/goulinkh
 | Script | Site | What it does |
 | --- | --- | --- |
 | [Google Docs Copy as Markdown](#google-docs-copy-as-markdown) | docs.google.com | Copies a document as Markdown, optionally with comments, to the clipboard |
+| [Google Docs Markdown Clipboard](#google-docs-markdown-clipboard) | docs.google.com | Makes ⌘C/Ctrl+C copy as Markdown and ⌘V/Ctrl+V paste from Markdown |
 | [GitHub Sticky PR Navigation](#github-sticky-pr-navigation) | github.com | Keeps a compact pull-request tab row pinned while scrolling (GitHub's experimental new pull request pages only) |
 | [GitHub OverType Comments](#github-overtype-comments) | github.com, gist.github.com | Markdown editing and code highlighting in comment fields |
 
@@ -46,6 +47,22 @@ Comments in place are inserted only between blocks, so they never break code, ta
 The export covers the saved document, so wait for Docs to finish saving recent edits. Whether it includes every document tab or only the current one depends on Google's export. Embedded images are exported inline as data URIs, which can make the copied text large. Documents whose owners disabled downloading cannot be exported. Copying with comments downloads two exports, and Google temporarily refuses exports after many in quick succession; the error then says to try again in a minute.
 
 No dependencies; requests go only to Google's export endpoints, and nothing in the document is modified. Tested in an isolated fixture and by injection into a live document; userscript-manager installation remains unverified. If the tab loses focus before a copy finishes (for example, switching apps right after clicking), the browser refuses the clipboard write; the icon turns amber and the next click copies the already prepared text. For debugging: `window.__googleDocsCopyMarkdown.status()` (including recent `failures` with phase, error, timing and focus, never document text) and `.destroy()`; `.render(true)` returns the text that would be copied without using the clipboard.
+
+## Google Docs Markdown Clipboard
+
+[**Install Google Docs Markdown Clipboard v0.1.0**](https://github.com/goulinkh/userscripts/releases/download/gdocs-md-clipboard-v0.1.0/google-docs-md-clipboard.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-md-clipboard.user.js)
+
+Makes Google Docs' own **Copy as Markdown** and **Paste from Markdown** commands the default clipboard shortcuts in the document body: ⌘C (Ctrl+C on Windows and Linux) copies the selection as Markdown, and ⌘V (Ctrl+V) pastes the clipboard as Markdown. Docs does the conversion; the script only runs its menu commands when you press the shortcut.
+
+Turn on Markdown in Docs first: **Tools → Preferences → Enable Markdown**. That setting adds both commands to the Edit and right-click menus; without it the shortcuts keep their normal behavior.
+
+The shortcuts fall back to normal copy and paste whenever Docs' Markdown command is unavailable, for example when nothing is selected, in view-only documents, or when Markdown is turned off. Paste also stays normal if the site's clipboard permission is blocked, and outside Chrome-based browsers, where Docs answers Paste from Markdown with a dialog instead of pasting. Paste from Markdown reads the clipboard through the browser, so Chrome may ask once to allow docs.google.com to see the clipboard.
+
+Content copied from Google Docs, Sheets or Slides themselves still pastes with its full formatting, because converting it through Markdown would only lose detail. That covers ⌘X (Ctrl+X), which keeps cutting normally, so cut and paste moves text within a document exactly as before, and anything copied with the regular **Copy** command in the Edit or right-click menu. Everything else on the clipboard, such as text from web pages, chats or code editors, is pasted as Markdown; Docs' Markdown import converts or drops formatting it cannot express.
+
+The rest is unchanged: ⌘⇧V (Ctrl+Shift+V) still pastes without formatting, text boxes outside the document (comments, find, rename) are not affected, and the regular **Copy** and **Paste** remain in the menus.
+
+No dependencies and no network requests. Tested in an isolated fixture and by injection into a live, signed-in document with Markdown enabled (copy as Markdown and paste from Markdown); installation through a userscript manager remains unverified. For debugging: `window.__googleDocsMarkdownClipboard.status()` reports whether each shortcut currently uses Markdown and counts (never clipboard contents); `.destroy()` restores the native shortcuts.
 
 ## GitHub Sticky PR Navigation
 

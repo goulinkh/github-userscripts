@@ -85,3 +85,32 @@ await writeFile('build/apply-gdocs-copy-md.playwright.js', `async page => {
   return page.evaluate(() => window.__googleDocsCopyMarkdown.status());
 }`);
 console.log(`Built Google Docs Copy as Markdown ${docsVersion}`);
+const clipboardSource = await readFile('src/google-docs-md-clipboard.js', 'utf8');
+const clipboardVersion = clipboardSource.match(/const VERSION = '([^']+)';/)[1];
+const clipboardClean = await transform(clipboardSource, { minifySyntax: true, legalComments: 'none', charset: 'utf8', target: 'es2022' });
+const clipboardBase = 'https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-md-clipboard.user.js';
+await writeFile('userscripts/google-docs-md-clipboard.user.js', `// ==UserScript==
+// @name         Google Docs Markdown Clipboard
+// @namespace    https://github.com/goulinkh/github-userscripts
+// @version      ${clipboardVersion}
+// @description  Makes ⌘C/Ctrl+C copy as Markdown and ⌘V/Ctrl+V paste from Markdown in Google Docs
+// @author       goulinkh
+// @license      MIT
+// @homepageURL  https://github.com/goulinkh/userscripts
+// @supportURL   https://github.com/goulinkh/userscripts/issues
+// @downloadURL  ${clipboardBase}
+// @updateURL    ${clipboardBase}
+// @match        https://docs.google.com/document/d/*
+// @match        https://docs.google.com/document/u/*/d/*
+// @noframes
+// @run-at       document-idle
+// @grant        none
+// ==/UserScript==
+\n${clipboardClean.code}`);
+await writeFile('build/apply-gdocs-md-clipboard.playwright.js', `async page => {
+  if (new URL(page.url()).hostname !== 'docs.google.com') throw Error('Google Docs only');
+  await page.evaluate(${JSON.stringify(clipboardSource)});
+  await page.waitForTimeout(100);
+  return page.evaluate(() => window.__googleDocsMarkdownClipboard.status());
+}`);
+console.log(`Built Google Docs Markdown Clipboard ${clipboardVersion}`);
