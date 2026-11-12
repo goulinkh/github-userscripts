@@ -7,6 +7,7 @@ const otherMod = mod === 'Meta' ? 'Control' : 'Meta';
 const item = (id, icon, label) => `<div class="goog-menuitem goog-menuitem-disabled apps-menuitem" role="menuitem" aria-disabled="true" id="${id}" style="display:none"><div class="goog-menuitem-content"><div class="docs-icon goog-inline-block goog-menuitem-icon" aria-hidden="true"><div class="docs-icon-img-container docs-icon-img docs-icon-${icon}"></div></div><span class="goog-menuitem-label">${label}</span></div></div>`;
 const html = `<!doctype html><title>Fixture - Google Docs</title>
 <input id=comment aria-label="Comment">
+<div class="kix-cursor"><div class="kix-cursor-name"></div></div><div class="kix-cursor"><div class="kix-cursor-name">Collaborator</div></div>
 <div class="goog-menu goog-menu-vertical shell-menu" role="menu" style="visibility:hidden">
 ${item('copy', 'editors-ia-content-copy', 'Copy')}${item('copy-md', 'markdown-copy-18x18', 'Copy as Markdown')}${item('paste', 'editors-ia-paste', 'Paste')}${item('paste-md', 'markdown-paste-18x18', 'Paste from Markdown')}
 </div>
@@ -21,6 +22,11 @@ document.querySelectorAll('.goog-menuitem').forEach(item => {
     if (!enabled() || !item.dataset.active) return;
     delete item.dataset.active;
     window.__actions.push(item.id);
+    if (/^paste/.test(item.id) && window.__docsPaste) {
+      const data = new DataTransfer();
+      data.setData('text/plain', window.__clip.items[0]?.['text/plain'] ?? '');
+      document.querySelector('.docs-texteventtarget-iframe').contentDocument.querySelector('[role=textbox]').dispatchEvent(new ClipboardEvent('paste', {clipboardData: data, bubbles: true, cancelable: true}));
+    }
     if (item.id === 'copy-md') navigator.clipboard.writeText('# Copied as Markdown').catch(error => window.__actions.push('copy-failed:' + error.name));
   });
 });
@@ -48,6 +54,27 @@ window.makeEditor = () => {
     window.__events.push({type: 'docs-key-paste'});
   });
   for (const type of ['copy', 'paste']) doc.addEventListener(type, () => window.__events.push({type}));
+  editor.addEventListener('paste', event => {
+    const text = event.clipboardData.getData('text/plain').trimEnd();
+    setTimeout(() => {
+      const model = window.__docsPaste;
+      if (!model) return;
+      model.text = model.text.slice(0, model.caret) + text + '\\n' + model.text.slice(model.caret);
+      model.caret += text.length + 1;
+      const cursor = [...document.querySelectorAll('.kix-cursor, .other-cursor')];
+      cursor[1].style.transform = 'translate(' + model.caret + 'px, 1px)';
+      cursor[0].style.transform = 'translate(' + model.caret + 'px, 0px)';
+    }, window.__docsPaste?.delay ?? 20);
+  });
+  editor.addEventListener('keydown', event => {
+    const model = window.__docsPaste;
+    if (!model || event.key !== 'Backspace') return;
+    model.keys.push((event.isTrusted ? 'trusted:' : 'synthetic:') + event.keyCode);
+    if (event.keyCode !== 8 || !model.caret) return;
+    event.preventDefault();
+    model.text = model.text.slice(0, model.caret - 1) + model.text.slice(model.caret);
+    model.caret--;
+  });
   return frame;
 };
 makeEditor();
@@ -140,6 +167,42 @@ try {
   await clipboard(page, [{'text/plain': '# Title', 'text/html': '<pre># Title</pre>'}]);
   r = await press(page, mod + '+v');
   check(r.actions.join() === 'paste-md' && r.status.last.outcome === 'markdown', 'other HTML content still pastes from Markdown', r);
+  const pasted = async (text, {delay = 20, between = null, cursor = true} = {}) => {
+    await clipboard(page, [{'text/plain': text, 'text/html': '<p>x</p>'}]);
+    await page.evaluate(([delay, cursor]) => {
+      window.__docsPaste = {text: 'LEFTRIGHT', caret: 4, delay, keys: []};
+      if (!cursor) document.querySelector('.kix-cursor').className = 'other-cursor';
+    }, [delay, cursor]);
+    const result = await press(page, mod + '+v');
+    if (between) await page.keyboard.press(between);
+    await page.waitForTimeout(delay + 100);
+    const after = await page.evaluate(() => ({doc: window.__docsPaste.text, keys: window.__docsPaste.keys, last: window.__googleDocsMarkdownClipboard.status().last}));
+    await page.evaluate(() => { window.__docsPaste = null; document.querySelector('.other-cursor')?.setAttribute('class', 'kix-cursor'); });
+    return {...result, ...after};
+  };
+  r = await pasted('Pasted words\n\n');
+  check(r.doc === 'LEFTPasted wordsRIGHT' && r.last.join === 'joined', 'the paragraph break Docs adds after Paste from Markdown is removed', r);
+  check(r.keys.join() === 'synthetic:8', 'the break is removed with exactly one Backspace that Docs recognises by key code', r.keys);
+  check(await page.evaluate(() => window.__clip.items[0]['text/plain']) === 'Pasted words\n\n', 'the system clipboard is not rewritten');
+  r = await pasted('# Title\n\nPara\n\n- item');
+  check(r.doc === 'LEFT# Title\n\nPara\n\n- itemRIGHT' && r.last.join === 'joined', 'multi-block Markdown joins the rest of the line to its last block', r);
+  r = await pasted('Title\n---');
+  check(r.last.join === 'joined', 'a setext heading underline is not mistaken for a horizontal rule', r.last);
+  for (const [name, text] of [['code block', 'Intro\n\n```\ncode\n```\n'], ['tilde code block', '~~~\ncode\n~~~'], ['table', '| a | b |\n| --- | --- |\n| 1 | 2 |\n'], ['horizontal rule', 'Intro\n\n---\n'], ['starred rule', '* * *'], ['empty text', '\n\n']]) {
+    r = await pasted(text);
+    check(r.last.join === 'block-end' && r.keys.length === 0 && r.doc.endsWith('\nRIGHT'), 'Markdown ending with a ' + name + ' keeps the break Docs needs after it', r);
+  }
+  r = await pasted('Typed over', {delay: 300, between: 'ArrowLeft'});
+  check(r.last.join === 'interrupted' && r.keys.length === 0 && r.doc === 'LEFTTyped over\nRIGHT', 'a key pressed before the paste lands cancels the Backspace', r);
+  r = await pasted('No cursor', {cursor: false});
+  check(r.last.join === 'no-cursor' && r.keys.length === 0, 'without the editor cursor nothing is deleted', r);
+  await page.evaluate(() => { window.__docsPaste = {text: 'LEFTRIGHT', caret: 4, delay: 20, keys: []}; });
+  await clipboard(page, [{'text/plain': 'Title', 'web application/x-vnd.google-docs-document-slice-clip+wrapped': '{}'}]);
+  r = await press(page, mod + '+v');
+  await page.waitForTimeout(150);
+  r = await page.evaluate(() => ({keys: window.__docsPaste.keys, last: window.__googleDocsMarkdownClipboard.status().last}));
+  check(r.keys.length === 0 && r.last.outcome === 'native' && !('join' in r.last), 'Docs plain Paste of Google editor content is left alone', r);
+  await page.evaluate(() => { window.__docsPaste = null; });
   await clipboard(page, [], 'NotAllowedError');
   r = await press(page, mod + '+v');
   check(r.actions.join() === 'paste-md' && r.status.last.reason === 'clipboard-read-NotAllowedError', 'an unreadable clipboard leaves the decision to Paste from Markdown', r);

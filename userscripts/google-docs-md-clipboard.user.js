@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Docs Markdown Clipboard
 // @namespace    https://github.com/goulinkh/github-userscripts
-// @version      0.1.0
+// @version      0.1.1
 // @description  Makes ⌘C/Ctrl+C copy as Markdown and ⌘V/Ctrl+V paste from Markdown in Google Docs
 // @author       goulinkh
 // @license      MIT
@@ -18,7 +18,7 @@
 
 (() => {
   "use strict";
-  const VERSION = "0.1.0", KEY = "__googleDocsMarkdownClipboard";
+  const VERSION = "0.1.1", KEY = "__googleDocsMarkdownClipboard";
   window[KEY]?.destroy();
   const mac = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform), chrome = /(?:Chrome|CriOS)\//.test(navigator.userAgent), commands = {
     c: { name: "copy", icon: "markdown-copy-18x18" },
@@ -58,6 +58,47 @@
       if (html.includes('id="docs-internal-guid-') || html.includes("google-sheets-html-origin")) return !0;
     }
     return !1;
+  }, ownCursors = () => [...document.querySelectorAll(".kix-cursor")].filter((cursor) => !cursor.querySelector(".kix-cursor-name")?.textContent), cursorState = (cursors) => cursors.map((cursor) => cursor.style.transform + "|" + cursor.style.display).join(), backspace = (target) => {
+    const win = target.ownerDocument.defaultView;
+    for (const type of ["keydown", "keyup"]) {
+      const event = new win.KeyboardEvent(type, { key: "Backspace", code: "Backspace", bubbles: !0, cancelable: !0 });
+      for (const name of ["keyCode", "which"]) Object.defineProperty(event, name, { get: () => 8 });
+      target.dispatchEvent(event);
+    }
+  }, endsWithBlock = (text) => {
+    const lines = text.trimEnd().split(/\r?\n/), lastLine = lines.at(-1);
+    return !lastLine.trim() || /^ {0,3}(?:`{3,}|~{3,})/.test(lastLine) || /^\s*\|/.test(lastLine) ? !0 : /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/.test(lastLine) && !(lastLine.trim()[0] === "-" && lines.at(-2)?.trim());
+  };
+  let disarm = null;
+  const joinAfterPaste = (entry) => {
+    const listening = [...windows, window], cursors = ownCursors();
+    let observer = null, timer2 = 0;
+    const finish = (join) => {
+      entry.join = join, disarm?.();
+    }, interrupt = (event) => {
+      event.isTrusted && finish("interrupted");
+    }, onPaste = (event) => {
+      for (const win of listening) win.removeEventListener("paste", onPaste, !0);
+      if (!cursors.length) return finish("no-cursor");
+      if (endsWithBlock(event.clipboardData?.getData("text/plain") ?? "")) return finish("block-end");
+      const target = event.target.ownerDocument.activeElement || event.target, before = cursorState(cursors);
+      observer = new MutationObserver(() => {
+        cursorState(cursors) !== before && (finish("joined"), backspace(target));
+      });
+      for (const cursor of cursors) observer.observe(cursor, { attributes: !0, attributeFilter: ["style"] });
+    };
+    disarm = () => {
+      clearTimeout(timer2), observer?.disconnect();
+      for (const win of listening)
+        try {
+          win.removeEventListener("paste", onPaste, !0), win.removeEventListener("keydown", interrupt, !0), win.removeEventListener("mousedown", interrupt, !0);
+        } catch {
+        }
+      disarm = null;
+    };
+    for (const win of listening)
+      win.addEventListener("paste", onPaste, !0), win.addEventListener("keydown", interrupt, !0), win.addEventListener("mousedown", interrupt, !0);
+    timer2 = setTimeout(() => finish("timeout"), 3e3);
   }, native = (command, reason) => {
     counts.native++, last = { command: command.name, outcome: "native", reason, at: Date.now() };
   }, copy = (event) => {
@@ -73,7 +114,7 @@
     fromGoogleEditor().then((google) => ({ google }), (error) => ({ google: !1, error: error?.name || "Error" })).then(({ google, error }) => {
       if (destroyed) return;
       const item = findItem(google ? PLAIN_PASTE : commands.v.icon), outcome = item ? google ? "native" : "markdown" : "failed";
-      outcome === "markdown" ? counts.paste++ : outcome === "native" && counts.native++, last = { command: "paste", outcome, reason: item ? google ? "google-editor-content" : error ? "clipboard-read-" + error : void 0 : "unavailable", ms: Date.now() - started, at: Date.now() }, item && activate(item);
+      outcome === "markdown" ? counts.paste++ : outcome === "native" && counts.native++, last = { command: "paste", outcome, reason: item ? google ? "google-editor-content" : error ? "clipboard-read-" + error : void 0 : "unavailable", ms: Date.now() - started, at: Date.now() }, outcome === "markdown" && (disarm?.(), joinAfterPaste(last)), item && activate(item);
     });
   }, onKeydown = (event) => {
     const command = shortcut(event);
@@ -111,7 +152,7 @@
       last: last && { ...last }
     }),
     destroy() {
-      destroyed = !0, clearInterval(timer);
+      destroyed = !0, clearInterval(timer), disarm?.();
       for (const win of windows)
         try {
           win.removeEventListener("keydown", onKeydown, !0);

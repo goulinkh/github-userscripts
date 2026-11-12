@@ -1,5 +1,9 @@
 # Changelog
 
+## Google Docs Markdown Clipboard 0.1.1
+
+- Pasting from Markdown no longer leaves an empty line, or a line break before the rest of the line, after the pasted content. Docs always ends the paste with a paragraph break, whatever the clipboard ends with; the script removes it with one Backspace once the paste lands. The break is kept when the pasted Markdown ends with a code block, table or horizontal rule, and the Backspace is skipped if you press a key or click before the paste lands. Undo first undoes that Backspace, then the paste.
+
 ## Google Docs Markdown Clipboard 0.1.0
 
 - First version of the separate Google Docs Markdown Clipboard userscript.

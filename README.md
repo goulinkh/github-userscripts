@@ -50,13 +50,13 @@ No dependencies; requests go only to Google's export endpoints, and nothing in t
 
 ## Google Docs Markdown Clipboard
 
-[**Install Google Docs Markdown Clipboard v0.1.0**](https://github.com/goulinkh/userscripts/releases/download/gdocs-md-clipboard-v0.1.0/google-docs-md-clipboard.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-md-clipboard.user.js)
+[**Install Google Docs Markdown Clipboard v0.1.1**](https://github.com/goulinkh/userscripts/releases/download/gdocs-md-clipboard-v0.1.1/google-docs-md-clipboard.user.js) · [Latest script](https://raw.githubusercontent.com/goulinkh/userscripts/main/userscripts/google-docs-md-clipboard.user.js)
 
 Makes Google Docs' own **Copy as Markdown** and **Paste from Markdown** commands the default clipboard shortcuts in the document body: ⌘C (Ctrl+C on Windows and Linux) copies the selection as Markdown, and ⌘V (Ctrl+V) pastes the clipboard as Markdown. Docs does the conversion; the script only runs its menu commands when you press the shortcut.
 
 Turn on Markdown in Docs first: **Tools → Preferences → Enable Markdown**. That setting adds both commands to the Edit and right-click menus; without it the shortcuts keep their normal behavior.
 
-The shortcuts fall back to normal copy and paste whenever Docs' Markdown command is unavailable, for example when nothing is selected, in view-only documents, or when Markdown is turned off. Paste also stays normal if the site's clipboard permission is blocked, and outside Chrome-based browsers, where Docs answers Paste from Markdown with a dialog instead of pasting. Paste from Markdown reads the clipboard through the browser, so Chrome may ask once to allow docs.google.com to see the clipboard.
+The shortcuts fall back to normal copy and paste whenever Docs' Markdown command is unavailable, for example when nothing is selected, in view-only documents, or when Markdown is turned off. Paste also stays normal if the site's clipboard permission is blocked, and outside Chrome-based browsers, where Docs answers Paste from Markdown with a dialog instead of pasting. Paste from Markdown reads the clipboard through the browser, so Chrome may ask once to allow docs.google.com to see the clipboard. Docs ends every Markdown paste with a paragraph break, which leaves an empty line or splits the line you pasted into; the script removes that break right after the paste, except when the Markdown ends with a code block, table or horizontal rule. Pressing Undo once brings the break back.
 
 Content copied from Google Docs, Sheets or Slides themselves still pastes with its full formatting, because converting it through Markdown would only lose detail. That covers ⌘X (Ctrl+X), which keeps cutting normally, so cut and paste moves text within a document exactly as before, and anything copied with the regular **Copy** command in the Edit or right-click menu. Everything else on the clipboard, such as text from web pages, chats or code editors, is pasted as Markdown; Docs' Markdown import converts or drops formatting it cannot express.
 

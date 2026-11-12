@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = '0.1.0';
+  const VERSION = '0.1.1';
   const KEY = '__googleDocsMarkdownClipboard';
   window[KEY]?.destroy();
   const mac = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform);
@@ -66,6 +66,72 @@
     return false;
   };
 
+  const ownCursors = () => [...document.querySelectorAll('.kix-cursor')].filter(cursor => !cursor.querySelector('.kix-cursor-name')?.textContent);
+  const cursorState = cursors => cursors.map(cursor => cursor.style.transform + '|' + cursor.style.display).join();
+
+  const backspace = target => {
+    const win = target.ownerDocument.defaultView;
+    for (const type of ['keydown', 'keyup']) {
+      const event = new win.KeyboardEvent(type, {key: 'Backspace', code: 'Backspace', bubbles: true, cancelable: true});
+      for (const name of ['keyCode', 'which']) Object.defineProperty(event, name, {get: () => 8});
+      target.dispatchEvent(event);
+    }
+  };
+
+  const endsWithBlock = text => {
+    const lines = text.trimEnd().split(/\r?\n/);
+    const lastLine = lines.at(-1);
+    if (!lastLine.trim()) return true;
+    if (/^ {0,3}(?:`{3,}|~{3,})/.test(lastLine) || /^\s*\|/.test(lastLine)) return true;
+    return /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/.test(lastLine) && !(lastLine.trim()[0] === '-' && lines.at(-2)?.trim());
+  };
+
+  let disarm = null;
+  const joinAfterPaste = entry => {
+    const listening = [...windows, window];
+    const cursors = ownCursors();
+    let observer = null;
+    let timer = 0;
+    const finish = join => {
+      entry.join = join;
+      disarm?.();
+    };
+    const interrupt = event => {
+      if (event.isTrusted) finish('interrupted');
+    };
+    const onPaste = event => {
+      for (const win of listening) win.removeEventListener('paste', onPaste, true);
+      if (!cursors.length) return finish('no-cursor');
+      if (endsWithBlock(event.clipboardData?.getData('text/plain') ?? '')) return finish('block-end');
+      const target = event.target.ownerDocument.activeElement || event.target;
+      const before = cursorState(cursors);
+      observer = new MutationObserver(() => {
+        if (cursorState(cursors) === before) return;
+        finish('joined');
+        backspace(target);
+      });
+      for (const cursor of cursors) observer.observe(cursor, {attributes: true, attributeFilter: ['style']});
+    };
+    disarm = () => {
+      clearTimeout(timer);
+      observer?.disconnect();
+      for (const win of listening) {
+        try {
+          win.removeEventListener('paste', onPaste, true);
+          win.removeEventListener('keydown', interrupt, true);
+          win.removeEventListener('mousedown', interrupt, true);
+        } catch {}
+      }
+      disarm = null;
+    };
+    for (const win of listening) {
+      win.addEventListener('paste', onPaste, true);
+      win.addEventListener('keydown', interrupt, true);
+      win.addEventListener('mousedown', interrupt, true);
+    }
+    timer = setTimeout(() => finish('timeout'), 3000);
+  };
+
   const native = (command, reason) => {
     counts.native++;
     last = {command: command.name, outcome: 'native', reason, at: Date.now()};
@@ -95,6 +161,10 @@
       if (outcome === 'markdown') counts.paste++;
       else if (outcome === 'native') counts.native++;
       last = {command: 'paste', outcome, reason: !item ? 'unavailable' : google ? 'google-editor-content' : error ? 'clipboard-read-' + error : undefined, ms: Date.now() - started, at: Date.now()};
+      if (outcome === 'markdown') {
+        disarm?.();
+        joinAfterPaste(last);
+      }
       if (item) activate(item);
     });
   };
@@ -147,6 +217,7 @@
     destroy() {
       destroyed = true;
       clearInterval(timer);
+      disarm?.();
       for (const win of windows) {
         try { win.removeEventListener('keydown', onKeydown, true); } catch {}
       }
